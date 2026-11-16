@@ -31,8 +31,8 @@ Every text pair is at least 4.5:1 and every control outline and the focus ring a
 | Component | Where | Key rule |
 |---|---|---|
 | Idea form | Board | Label, textarea, live "n / 140" counter (code points), Add idea button. Over limit text is kept and explained, never cut off. |
-| Idea row | Board | Idea text, time, and a vote chip on the right. |
-| Vote button | Board | Up arrow above the count, 44 by 56 px minimum. Voted state: soft blue fill, heavier outline, filled arrow, `aria-pressed="true"`. |
+| Idea row | Board | Idea text, an absolute UTC date, and a vote chip on the right. |
+| Vote button | Board | Up arrow above the count, 44 by 56 px minimum. Voted state: soft blue fill, inset ring, filled arrow, `aria-pressed="true"`. Sends the wanted state (on or off), so a retry is safe. |
 | Empty state | Board | "No ideas yet", one sentence, a button that moves focus to the idea field. |
 | Error message | Board, Admin | Icon plus plain text, a Try again button when it helps. |
 | Admin row | Admin | Idea, votes, date, Visible or Hidden badge, one Hide or Unhide button. No confirm dialog because it is reversible. |

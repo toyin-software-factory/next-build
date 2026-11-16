@@ -39,7 +39,7 @@ Dark by default, monospace accents, a green accent.
 | Font | Inter variable via `next/font`, self hosted | System font stack only | Consistent numerals and widths on every device; self hosting means no third party request and no CSP change. System stack is the fallback. |
 | Counter limit | Count code points | Count UTF 16 units | Matches the server rule in spec 0002 so an emoji is never counted twice. |
 | `maxlength` on the field | None | `maxlength=140` | `maxlength` cuts pasted text with no feedback. The counter and message explain instead. |
-| Vote button name | Stable name plus `aria-pressed` | Name flips ("Upvote" and "Remove vote") | A flipping name combined with `aria-pressed` gets read twice by screen readers. Stable name plus state is the standard toggle pattern. |
+| Vote button name | Short stable name "Upvote idea" plus `aria-pressed`, idea text via `aria-describedby` | Name flips, or idea text inside the name | A flipping name combined with `aria-pressed` gets read twice by screen readers. Stable name plus state is the standard toggle pattern. |
 | Hide confirmation | None, one click, reversible | Confirm dialog | Hide is undoable with Unhide, so a dialog only adds friction when cleaning many spam rows. |
 | Announcements | One polite status region | Live regions on counter and list | Live regions on fast changing content flood screen readers. One region, short messages, set only on real events. |
 | Admin layout | Table, stacked cards on phones | Card list on all sizes | Admin compares text, votes, date and status across rows, which suits a table. |
@@ -50,7 +50,7 @@ The board has about eight visible things. Anything beyond neutral surfaces, one 
 
 Putting the design system inside the first UI slice (instead of its own build task) follows the Tracer Bullet approach used in this project: tokens and components are proven on a real page, and the contrast test runs against the same values the page uses.
 
-Voting is the one interaction people repeat, so it gets the most care: a 44 px target, a state shown by shape (filled arrow, heavier outline) as well as colour, a stable accessible name with `aria-pressed`, and a count that does not shift the layout (tabular numbers).
+Voting is the one interaction people repeat, so it gets the most care: a 44 px target, a state shown by shape (filled arrow, inset ring) as well as colour, a stable accessible name with `aria-pressed`, and a count that does not shift the layout (tabular numbers).
 
 ## Mobbin references
 
@@ -66,6 +66,18 @@ Six screens from public feedback and roadmap tools were reviewed. They show the 
 | 6 | Basecamp, empty state: https://mobbin.com/screens/81058ba9-1633-4234-a12a-1c87c41bdb53 | A quiet dashed card for "nothing here yet", friendly copy without noise. |
 
 Not copied: logins and avatars (visitors are anonymous), status labels and comment threads (out of scope for this board), and heavy colour fills.
+
+### Decisions added after the cross check
+
+| Decision | Chosen | Why |
+|---|---|---|
+| Vote request | Sends the wanted state (on or off), as spec 0002 now defines | Idempotent, so a lost response is retried with the same request and no re-read or unconfirmed state is needed. |
+| Idea text rules | One shared `normalizeIdea()` and `ideaLength()` in `src/lib/idea.ts` | The counter and the server cannot disagree. |
+| Reads | Server components, `router.refresh()` after actions, `error.tsx` boundary | Keeps one source of truth (D1) and no client cache. |
+| Optimistic vote | `useOptimistic` held until refreshed props arrive; returned `{ count, voted }` only feeds the announcement | The server's numbers always win. |
+| Dates | Absolute UTC, formatted on the server | No hydration mismatch, no browser clock. |
+| Admin small screens | Labelled list next to a real table, one shown at a time | Turning table cells into blocks removes their meaning for screen readers. |
+| Voted chip | Constant 1 px border plus an inset ring | No layout shift on press. |
 
 ## Contrast method
 
