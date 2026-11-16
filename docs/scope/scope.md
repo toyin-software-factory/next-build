@@ -3,7 +3,7 @@
 One public page where anyone can suggest what we build next (one text box, 140 characters) and upvote ideas. Ideas are sorted by votes, each browser gets one vote per idea, and Toyin can hide spam from a private admin page. Runs on Cloudflare Workers, like the portfolio.
 
 **Build approach:** Tracer Bullet (each slice is built end to end, storage to live page, and works on its own).
-**Workflow:** Beta (after `/develop`: `/check verify`, then `/test` where it matters). The project default level of rigor. `/architect` is the recommended first stop for a feature with a real decision, but skippable when you already know the build. Any feature can carry its own tag (e.g. `· GA`) to do more or less.
+**Workflow:** Beta (after `/develop`: `/check verify`, then `/test`; tests focus on the logic that matters, such as vote counts, one vote per browser and hiding). The project default level of rigor. `/architect` is the recommended first stop for a feature with a real decision, but skippable when you already know the build. Any feature can carry its own tag (e.g. `· GA`) to do more or less.
 
 _These are recommendations to keep your build orderly, not requirements. Skip anything that does not fit: if you already know how to build a feature, use `/develop` and skip `/architect`. You decide when a feature is `done`._
 
@@ -91,7 +91,7 @@ Out of scope for the first launch, kept so the plan stays honest.
 
 ## Legend
 
-**The decision box.** Every feature carries exactly one, the sub-task whose label ends with `(spec)`. Skills locate it by that `(spec)` suffix, never by an exact label. Every other box is an execution box and `/architect` never ticks one.
+**The decision box.** A feature that `needs a decision` carries exactly one, the sub-task whose label ends with `(spec)`. Skills locate it by that `(spec)` suffix, never by an exact label. A feature with no decision owed starts with one box, its entry command (`/develop` or `/audit`). Every box without the `(spec)` suffix is an execution box and `/architect` never ticks one.
 
 - **Next step** = the first unticked box (always a command or a tracked milestone).
 - **needs a decision** = run `/architect` first; otherwise straight to `/develop` (or `/audit` for standards & tooling). The tag drops once the spec is captured.
