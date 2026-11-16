@@ -45,8 +45,8 @@ Reasons are in the Rationale below. In short: it is the smallest thing that sati
 File `src/app/actions.ts` (`'use server'`, server only). The vote and admin actions of later slices live in the same file.
 
 **Input** (zod, in `src/lib/schemas.ts` so a test can import it):
-- `text`: a string. A raw cap of 2000 characters stops absurd payloads before any work is done (above it the code is `too_long`). The text is then passed through `normalizeIdea()` from `src/lib/idea.ts`, and the normalized text must be 1 to `MAX_IDEA_LENGTH` code points (`ideaLength()`).
-- Any other shape (missing field, not a string) gives `invalid`.
+- `text`: a string. A raw cap of 2000 characters stops absurd payloads before any work is done (above it the code is `invalid`, not `too_long`, because the raw length says nothing about how many characters the idea has after normalizing). The text is then passed through `normalizeIdea()` from `src/lib/idea.ts`, and the normalized text must be 1 to `MAX_IDEA_LENGTH` code points (`ideaLength()`).
+- Any other shape (missing field, not a string, or over the raw cap) gives `invalid`. `too_long` is only used when the normalized text is over 140 code points, so the page's "N over" number is never negative.
 
 **Result** (never throws for expected failures):
 
@@ -54,8 +54,8 @@ File `src/app/actions.ts` (`'use server'`, server only). The vote and admin acti
 |---|---|---|
 | `{ ok: true }` | Idea stored | Clear the field, announce "Idea added", `router.refresh()` |
 | `{ ok: false, code: 'empty' }` | Empty after normalizing | "Write an idea first." |
-| `{ ok: false, code: 'too_long' }` | Over 140 code points (or the raw cap) | "Ideas can be up to 140 characters. Yours is N over." (the page computes N itself from `ideaLength`) |
-| `{ ok: false, code: 'invalid' }` | Wrong shape | "That idea can't be added. Check it and try again." |
+| `{ ok: false, code: 'too_long' }` | Normalized text over 140 code points | "Ideas can be up to 140 characters. Yours is N over." (the page computes N itself from `ideaLength`) |
+| `{ ok: false, code: 'invalid' }` | Wrong shape, or raw text over 2000 characters | "That idea can't be added. Check it and try again." |
 | `{ ok: false, code: 'no_voter' }` | Missing or malformed `nb_voter` cookie | "Please reload the page and try again." |
 | `{ ok: false, code: 'server' }` | Database or other unexpected error (caught and logged) | "We couldn't add your idea. Try again." |
 
@@ -96,7 +96,7 @@ File `src/app/page.tsx`, a server component, dynamic (`export const dynamic = 'f
 4. Render `PageShell`, then `IdeaForm`, then either `EmptyState` (no rows) or `IdeaList`.
 5. No `try` and `catch` in the page. A throw reaches `src/app/error.tsx`.
 
-`src/app/error.tsx` is a client component (a Next.js requirement). It renders `ErrorMessage` with the board error text and a Try again button that calls `reset()`. After a successful reset, focus goes to the "Ideas" heading (0003).
+`src/app/error.tsx` is a client component (a Next.js requirement). It renders `ErrorMessage` with the board error text and a Try again button that calls `reset()`. After a successful reset, focus goes to the "Ideas" heading when the list renders, and to the idea field when the board is empty (the heading is absent then, as `EmptyState` replaces the list).
 
 `IdeaRow` shows the vote chip as a non interactive element (a `div`, not a button, with the count and a visually hidden "votes" or "vote" label). Slice 2 swaps it for `VoteButton` without moving the layout.
 
@@ -116,7 +116,7 @@ File `src/app/page.tsx`, a server component, dynamic (`export const dynamic = 'f
 | `postIdea` | Client IP for the abuse seam | `CF-Connecting-IP` request header (`null` if absent) |
 | Board | Rows, order, limit | `getBoard()` query (spec 0002) |
 | Board | Vote count and `voted` | `getBoard()` query; the voter id comes from `getVoterId()` |
-| Board | Date text on a row | `created_at` formatted on the server (`Intl.DateTimeFormat("en-GB", { timeZone: "UTC" })`, spec 0003) |
+| Board | Date text on a row | `created_at` formatted on the server (`Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" })` plus the fixed text " UTC", giving `16 Nov 2026, 14:05 UTC`, spec 0003) |
 | Board | Counter text, over limit number | `ideaLength()` on the client from the typed value (spec 0003) |
 | Page | All strings | `src/lib/copy.ts`, with one new key added by this spec: "Reload needed", "Please reload the page and try again." |
 
