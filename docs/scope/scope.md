@@ -24,11 +24,18 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## Foundations
 
-### 1. Stack & architecture · needs a decision
+### 1. Stack & architecture
 Pick the framework, storage and hosting setup on Cloudflare Workers (matching the portfolio), then scaffold a runnable app with CI that deploys.
 **Done when:** the stack is recorded in a spec, the empty app runs locally, CI runs lint, typecheck, test and build, and a deploy to the free `workers.dev` address works (no custom domain for now).
-- [ ] Decide the stack (spec): `/architect stack & architecture`
+- [x] Decide the stack (spec): `/architect stack & architecture`
 - [ ] Scaffold from the decision: `/develop stack & architecture`
+  - [ ] App skeleton, scripts and `wrangler.jsonc` (with Worker Previews) per the spec
+  - [ ] CI: lint, typecheck, test, build and the bundle size gate
+  - [ ] Deploy `main` to `workers.dev` and a preview link per PR
+- [ ] Verify it: `/check verify stack & architecture`
+- [ ] Test it: `/test stack & architecture`
+
+spec [0001](../specs/0001-stack-architecture/index.md)
 
 ### 2. Coding standards & tooling
 Capture the conventions from the real scaffold into root `AGENTS.md`, then install the matching lint and format tooling.
@@ -38,15 +45,31 @@ Capture the conventions from the real scaffold into root `AGENTS.md`, then insta
 - [ ] Verify it: `/check verify tooling`
 - [ ] Test it: `/test tooling`
 
-### 3. Data model · needs a decision
+### 3. Data model
 Ideas (text, created time, hidden flag, vote count) and votes (one per idea per browser), shaped so sorting by votes stays fast and counts stay correct.
 **Done when:** the model supports posting, voting, unvoting, hiding and sorting by votes without a breaking change later.
-- [ ] Design it (spec): `/architect data model`
+- [x] Design it (spec): `/architect data model`
+- [ ] Build it inside the slices (see the spec's build plan)
+  - [ ] Tables, first migration, post and board queries: `/develop suggest an idea and see the board`
+  - [ ] Set vote query: `/develop upvoting`
+  - [ ] Admin list and hide or unhide: `/develop hide spam`
+- [ ] Verify it: `/check verify data model`
+- [ ] Test it: `/test data model`
 
-### 4. Design system & UI foundation · needs a decision
+spec [0002](../specs/0002-data-model.md)
+
+### 4. Design system & UI foundation
 A small, clean visual language for one page: type, color, spacing, the idea row, the vote button, the input. Backed by Mobbin references.
 **Done when:** `design.md` covers tokens and the few components, with light and dark, keyboard focus and WCAG AA contrast.
-- [ ] Design it (spec): `/architect design system & UI foundation`
+- [x] Design it (spec): `/architect design system & UI foundation`
+- [ ] Build it inside the slices (see the spec's build plan)
+  - [ ] Tokens, theme and the board components: `/develop suggest an idea and see the board`
+  - [ ] Vote button behaviour: `/develop upvoting`
+  - [ ] Admin row and table: `/develop hide spam`
+- [ ] Verify it: `/check verify design system & UI foundation`
+- [ ] Test it: `/test design system & UI foundation`
+
+spec [0003](../specs/0003-design-system/index.md)
 
 ## Slice 1: Suggest an idea and see the board
 
