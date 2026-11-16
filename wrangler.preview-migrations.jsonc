@@ -1,0 +1,17 @@
+{
+  // Used only by `pnpm db:migrate:preview` and `pnpm db:reset:preview`: it binds DB to the
+  // shared preview database so migrations never run against production. Keep migrations_dir
+  // (and migrations_pattern, if wrangler.jsonc ever sets one) identical to wrangler.jsonc.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "next-build-preview-migrations",
+  "compatibility_date": "2026-11-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "next-build-preview",
+      // TODO(FSD-T01): placeholder id. Same value as previews.d1_databases in wrangler.jsonc.
+      "database_id": "00000000-0000-0000-0000-000000000002",
+      "migrations_dir": "drizzle",
+    },
+  ],
+}
