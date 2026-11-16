@@ -17,6 +17,14 @@ describe("buildContentSecurityPolicy", () => {
     expect(policy).toContain("frame-src https://challenges.cloudflare.com");
   });
 
+  it("uses a nonce for styles in production and unsafe-inline (no nonce) in development", () => {
+    expect(policy).toContain("style-src 'self' 'nonce-abc123'");
+    expect(policy).not.toContain("style-src 'self' 'unsafe-inline'");
+    const dev = buildContentSecurityPolicy("abc123", true);
+    expect(dev).toContain("style-src 'self' 'unsafe-inline';");
+    expect(dev).not.toContain("style-src 'self' 'nonce-");
+  });
+
   it("allows unsafe-eval only in development", () => {
     expect(policy).not.toContain("unsafe-eval");
     expect(buildContentSecurityPolicy("abc123", true)).toContain("'unsafe-eval'");

@@ -6,7 +6,9 @@ export function buildContentSecurityPolicy(nonce: string, isDev: boolean): strin
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    // A nonce makes browsers ignore 'unsafe-inline', so development (Next's dev overlay and
+    // hot reload inject un-nonced styles) gets 'unsafe-inline' without the nonce.
+    isDev ? "style-src 'self' 'unsafe-inline'" : `style-src 'self' 'nonce-${nonce}'`,
     "img-src 'self' data: blob:",
     "font-src 'self'",
     "connect-src 'self'",

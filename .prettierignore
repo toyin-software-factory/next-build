@@ -18,3 +18,4 @@ skills-lock.json
 tools/
 scripts/*.sh
 drizzle/meta/
+dist-check/
