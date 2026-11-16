@@ -58,7 +58,7 @@ src/**/*.test.ts(x)      Vitest tests next to the code
 wrangler.jsonc, open-next.config.ts, next.config.ts, drizzle.config.ts, .nvmrc
 ```
 
-`package.json` scripts, same names as the portfolio plus database ones: `dev`, `build`, `build:worker`, `preview`, `deploy`, `upload`, `lint`, `format`, `format:check`, `typecheck`, `test`, `test:e2e`, `cf-typegen`, and `db:generate` (`drizzle-kit generate`), `db:migrate:local` (`wrangler d1 migrations apply DB --local`), `db:migrate:remote` (`wrangler d1 migrations apply DB --remote`, production), `db:migrate:preview` (`wrangler d1 migrations apply DB --remote --config wrangler.preview-migrations.jsonc`, a small committed config that binds `DB` to `next-build-preview` and is used for nothing else), `db:reset:preview` (drops every table in `next-build-preview`, then runs `db:migrate:preview`; for when the shared preview database drifts), `deploy:preview` (`wrangler preview`, run after `opennextjs-cloudflare build`).
+`package.json` scripts, same names as the portfolio plus database ones: `dev`, `build`, `build:worker`, `preview`, `deploy`, `upload`, `lint`, `format`, `format:check`, `typecheck`, `test`, `test:e2e`, `cf-typegen`, and `db:generate` (`drizzle-kit generate`), `db:migrate:local` (`wrangler d1 migrations apply DB --local`), `db:migrate:remote` (`wrangler d1 migrations apply DB --remote`, production), `db:migrate:preview` (`wrangler d1 migrations apply DB --remote --config wrangler.preview-migrations.jsonc`, a small committed config that binds `DB` to `next-build-preview`, uses the same `migrations_dir` (and the same `migrations_pattern`, if one is set) as `wrangler.jsonc`, and is used for nothing else), `db:reset:preview` (drops every table in `next-build-preview`, then runs `db:migrate:preview`; for when the shared preview database drifts), `deploy:preview` (`wrangler preview`, run after `opennextjs-cloudflare build`).
 
 ## Rendering and data rules
 
@@ -87,7 +87,7 @@ wrangler.jsonc, open-next.config.ts, next.config.ts, drizzle.config.ts, .nvmrc
 
 **Production vs preview (`APP_ENV`)**: resolved at build time in `next.config.ts` exactly like the portfolio (explicit `APP_ENV`, else `production` when `WORKERS_CI_BRANCH` is `main`, else `preview`), read only through `getAppEnv()` in `src/lib/env.ts`. Outside production, `getAppEnv()` makes the app use Cloudflare's published Turnstile test keys (they are public, so they live in code), so previews, local runs and CI never need real Turnstile values. Real keys are only set for production.
 
-**Admin access outside production**: deployed previews keep the Access token check. Preview URLs are protected by their own Access application (the dashboard's preview URL protection), which has its own audience tag. Previews get that tag as their own `ACCESS_AUD` through `wrangler preview secret put` (preview base config), so a preview validates tokens against the preview application only, and production keeps the production tag. Locally and in CI there is no Access in front, so the admin sign in spec (scope feature 7) decides how tests reach `/admin`; it must never be possible on a deployed Worker. If `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD` is missing, `/admin` fails closed (403), never open.
+**Admin access outside production**: deployed previews keep the Access token check. Preview URLs are protected by their own Access application (the dashboard's preview URL protection), which has its own audience tag. Previews get that tag as their own `ACCESS_AUD` through the preview base config secret (`wrangler preview base-config secret put ACCESS_AUD`), not a secret on one preview. Base config changes only apply to previews created afterwards, so after changing it, update existing previews with `wrangler preview secret put` or redeploy them. so a preview validates tokens against the preview application only, and production keeps the production tag. Locally and in CI there is no Access in front, so the admin sign in spec (scope feature 7) decides how tests reach `/admin`; it must never be possible on a deployed Worker. If `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD` is missing, `/admin` fails closed (403), never open.
 
 ## Configuration required
 
@@ -113,7 +113,7 @@ GitHub Actions `ci.yml`, on every PR and push to `main`, Node from `.nvmrc`, pnp
 2. `pnpm lint`, `pnpm format:check`, `pnpm typecheck`
 3. A migration drift check: `pnpm db:generate` must produce no changes (schema and committed migrations agree)
 4. `pnpm db:migrate:local`, then `pnpm test` (Vitest)
-5. `pnpm build:worker`, then a bundle size gate: `wrangler deploy --dry-run --outdir dist-check`, gzip the output Worker script and fail if it is over 3 MiB (the Workers Free limit), printing the size. CI uses the committed `database_id` values; local mode never contacts them
+5. `pnpm build:worker`, then a bundle size gate: `wrangler deploy --dry-run --outdir dist-check`, print the output Worker script's size both raw and gzipped, and fail if the gzipped size is over 3 MiB (the Workers Free plan limit on compressed size) or the raw size is over 64 MiB (the uncompressed limit). CI uses the committed `database_id` values; local mode never contacts them
 6. Playwright (`pnpm test:e2e`, desktop and mobile projects, axe on every page) against `pnpm preview` (the real Workers runtime with a local D1 migrated fresh), HTML report uploaded
 
 Required checks on `main` (a Toyin action, added after the scaffold): `ci` and the Workers Builds check, alongside the existing `pr-sync`.
@@ -121,7 +121,7 @@ Required checks on `main` (a Toyin action, added after the scaffold): `ci` and t
 ## SEO and security basics
 
 - `src/app/sitemap.ts` and `src/app/robots.ts` come with the scaffold (robots disallows `/admin`). Canonical URL from `NEXT_PUBLIC_SITE_URL`.
-- Content security policy set per request in `middleware.ts` with a nonce (Next.js applies it to its own inline scripts; pages are dynamic anyway): `script-src 'self' 'nonce-…' 'strict-dynamic' https://challenges.cloudflare.com`, `frame-src https://challenges.cloudflare.com`, `object-src 'none'`, `base-uri 'self'`. Other security headers from `next.config.ts` `headers()`: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`. `/admin` responses send `Cache-Control: no-store` and `X-Robots-Tag: noindex`.
+- Content security policy set per request in `middleware.ts` with a nonce (Next.js applies it to its own inline scripts; pages are dynamic anyway): `script-src 'self' 'nonce-…' 'strict-dynamic' https://challenges.cloudflare.com` (the Turnstile `api.js` script tag gets the same request nonce, for example through `next/script` with the `nonce` prop, so `strict-dynamic` trusts it), `frame-src https://challenges.cloudflare.com`, `object-src 'none'`, `base-uri 'self'`. Other security headers from `next.config.ts` `headers()`: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`. `/admin` responses send `Cache-Control: no-store` and `X-Robots-Tag: noindex`.
 
 ## Consequences
 
