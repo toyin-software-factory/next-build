@@ -68,10 +68,10 @@ Export the inferred types (`Idea`, `NewIdea`, `Vote`) from the schema file, and 
 All live in `src/db/queries.ts`, server only, each with a test against a local D1.
 
 - **Board**: visible ideas with their vote count and whether this voter voted:
-  `select ideas.id, ideas.text, ideas.created_at, count(votes.voter_id) as votes, max(votes.voter_id = :voter) as voted from ideas left join votes on votes.idea_id = ideas.id where ideas.hidden_at is null group by ideas.id order by votes desc, ideas.created_at desc limit 500`.
+  `select ideas.id, ideas.text, ideas.created_at, count(votes.voter_id) as votes, coalesce(max(votes.voter_id = :voter), 0) as voted from ideas left join votes on votes.idea_id = ideas.id where ideas.hidden_at is null group by ideas.id order by votes desc, ideas.created_at desc limit 500`.
   The 500 cap keeps the page bounded; paging is out of scope until the board grows that big.
 - **Post**: insert one idea. Returns the new row.
-- **Toggle vote**: first check that the idea exists and is visible (else reject). Then delete the (idea, voter) vote; if that removed a row, the vote is now off. If it removed nothing, `insert into votes ... on conflict do nothing`, and the vote is now on. Two parallel taps from one browser can't create two votes, because of the primary key. Return the new count and whether the voter now has a vote.
+- **Set vote**: the button sends the state the person wants (`on` or `off`, from what they see), not a blind "toggle", so every request is idempotent and a double tap or a retry can't flip it back. First check that the idea exists and is visible (else reject). `on`: `insert into votes ... on conflict do nothing`. `off`: delete the (idea, voter) row. Each is one atomic statement, and the primary key makes a second vote impossible. Return the new count and whether this voter now has a vote. Return the new count and whether the voter now has a vote.
 - **Admin list**: every idea, hidden or not, newest first, with vote count and `hidden_at`.
 - **Hide / unhide**: update `hidden_at`. Idempotent.
 
@@ -80,7 +80,7 @@ All live in `src/db/queries.ts`, server only, each with a test against a local D
 The schema and first migration ship with Slice 1 (scope feature 5), not the scaffold:
 
 1. Slice 1 (`/develop suggest an idea`): `ideas` and `votes` tables, first migration, `post` and `board` queries with tests, voter cookie helper.
-2. Slice 2 (`/develop upvoting`): `toggle vote` query with tests (double tap, two browsers, hidden idea).
+2. Slice 2 (`/develop upvoting`): `set vote` query with tests (repeated on, repeated off, two browsers, hidden idea).
 3. Slice 3 (`/develop hide spam`): admin list and hide or unhide queries with tests.
 
 ## Consequences
