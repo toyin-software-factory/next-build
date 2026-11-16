@@ -34,6 +34,9 @@ Pick the framework, storage and hosting setup on Cloudflare Workers (matching th
 Capture the conventions from the real scaffold into root `AGENTS.md`, then install the matching lint and format tooling.
 **Done when:** root `AGENTS.md` reflects the real stack, and lint, format and typecheck run clean in CI.
 - [ ] Capture conventions + tooling choices: `/audit`
+- [ ] Install the tooling: `/develop tooling`
+- [ ] Verify it: `/check verify tooling`
+- [ ] Test it: `/test tooling`
 
 ### 3. Data model · needs a decision
 Ideas (text, created time, hidden flag, vote count) and votes (one per idea per browser), shaped so sorting by votes stays fast and counts stay correct.
@@ -70,6 +73,8 @@ A private admin area only Toyin can reach.
 An admin page listing every idea, visible and hidden, with Hide and Unhide.
 **Done when:** Toyin can hide or unhide any idea in one click; hidden ideas disappear from the public list and can't be voted on.
 - [ ] Build it: `/develop hide spam`
+- [ ] Verify it: `/check verify hide spam`
+- [ ] Test it: `/test hide spam`
 
 ## Slice 4: Hardening and polish
 
@@ -82,6 +87,8 @@ Keep counts honest and the board clean without sign up: per visitor limits on po
 Title, description and a share image so links look good in Slack, X and search.
 **Done when:** the page has a proper title, meta description and Open Graph card, and passes a basic Lighthouse SEO and accessibility check.
 - [ ] Build it: `/develop seo and share card`
+- [ ] Verify it: `/check verify seo and share card`
+- [ ] Test it: `/test seo and share card`
 
 ## Deferred
 Out of scope for the first launch, kept so the plan stays honest.
