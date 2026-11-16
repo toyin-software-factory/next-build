@@ -62,3 +62,4 @@ Option 2's bundle advantage only matters if the Worker outgrows the Free plan, a
 
 - Portfolio stack spec: `toyin-software-factory/toyinog-portfolio`, `docs/specs/0001-stack-architecture/index.md`
 - [Cloudflare Access for Workers](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) (path based Access on `workers.dev`)
+- [Worker Previews](https://developers.cloudflare.com/workers/previews/get-started/) and [Previews resources and isolation](https://developers.cloudflare.com/workers/previews/resources/) (per preview bindings, D1 migration workflow; checked 2026-11-16)
