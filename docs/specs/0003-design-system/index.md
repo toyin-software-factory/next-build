@@ -32,7 +32,7 @@ This spec covers scope feature 4 (Design system and UI foundation). It is a desi
 - **AC-6**: The empty board and the board error render with a clear message and one next step.
 - **AC-7**: The admin row shows each idea's text, vote count, date and a Hidden badge, with one Hide or Unhide button that names its idea. Hidden rows stay readable at AA contrast.
 - **AC-8**: Every interactive element has a visible `:focus-visible` ring, a tap target of at least 44 by 44 px, and works with keyboard only (Tab order follows reading order; Enter submits the form; Space and Enter press buttons).
-- **AC-9**: Results of actions (idea added, vote changed, error, hidden or unhidden) are announced once through a polite status region, never by moving focus away from the control used.
+- **AC-9**: Successful results (idea added, vote changed, hidden or unhidden) are announced once through a polite status region. Failures are announced once by the error message's own alert, never also through the status region. Focus never moves away from the control used.
 - **AC-10**: The layout works from 320 px to desktop with no horizontal scroll, respects `prefers-reduced-motion`, and keeps working at 200 percent text zoom.
 
 ## Decision
@@ -98,22 +98,55 @@ Per spec 0001 (Tailwind configured in CSS). The raw values live in the global st
 ```css
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#fafafa, #0a0a0a);
-  --surface: light-dark(#ffffff, #171717);
-  --text: light-dark(#171717, #fafafa);
-  --text-muted: light-dark(#525252, #a3a3a3);
-  --border: light-dark(#e5e5e5, #262626);
-  --border-strong: light-dark(#737373, #8a8a8a);
-  --accent: light-dark(#1d4ed8, #60a5fa);
-  --accent-fg: light-dark(#ffffff, #0a0a0a);
-  --accent-soft: light-dark(#eff6ff, #172554);
-  --danger: light-dark(#b91c1c, #f87171);
-  --success: light-dark(#15803d, #4ade80);
-  --warning: light-dark(#a16207, #facc15);
+  /* Light values: used where light-dark() is not supported. */
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #171717;
+  --text-muted: #525252;
+  --border: #e5e5e5;
+  --border-strong: #737373;
+  --accent: #1d4ed8;
+  --accent-fg: #ffffff;
+  --accent-soft: #eff6ff;
+  --danger: #b91c1c;
+  --success: #15803d;
+  --warning: #a16207;
   accent-color: var(--accent);
 }
-/* Fallback for browsers without light-dark(): redefine the same tokens inside
-   @media (prefers-color-scheme: dark) using the dark values from the table. */
+/* Dark values: used where light-dark() is not supported. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0a0a;
+    --surface: #171717;
+    --text: #fafafa;
+    --text-muted: #a3a3a3;
+    --border: #262626;
+    --border-strong: #8a8a8a;
+    --accent: #60a5fa;
+    --accent-fg: #0a0a0a;
+    --accent-soft: #172554;
+    --danger: #f87171;
+    --success: #4ade80;
+    --warning: #facc15;
+  }
+}
+/* Browsers that parse light-dark(): these declarations replace the fallbacks above. */
+@supports (color: light-dark(#fff, #000)) {
+  :root {
+    --bg: light-dark(#fafafa, #0a0a0a);
+    --surface: light-dark(#ffffff, #171717);
+    --text: light-dark(#171717, #fafafa);
+    --text-muted: light-dark(#525252, #a3a3a3);
+    --border: light-dark(#e5e5e5, #262626);
+    --border-strong: light-dark(#737373, #8a8a8a);
+    --accent: light-dark(#1d4ed8, #60a5fa);
+    --accent-fg: light-dark(#ffffff, #0a0a0a);
+    --accent-soft: light-dark(#eff6ff, #172554);
+    --danger: light-dark(#b91c1c, #f87171);
+    --success: light-dark(#15803d, #4ade80);
+    --warning: light-dark(#a16207, #facc15);
+  }
+}
 
 @theme inline {
   --color-bg: var(--bg);
@@ -171,7 +204,7 @@ All are built on native elements (`form`, `textarea`, `button`, `ul`, `li`) and 
 - The counter text changes on every key press, so it is not a live region. Instead the visually hidden status region says "20 characters left" when the count first reaches 120, and "5 characters over the limit" when it first goes over, and clears when back under. This keeps screen readers quiet while typing.
 - Submit button "Add idea" (primary: `--accent` fill, `--accent-fg` text). It stays enabled when the field is empty or too long, so the refusal is explained instead of the button silently doing nothing. While sending it shows "Adding…", gets `aria-disabled="true"` (so focus is not lost), and ignores repeat presses.
 - Validation messages (inline, under the field, with an icon and text, `id` linked through `aria-describedby`, field gets `aria-invalid="true"` only after a submit attempt): "Write an idea first." and "Ideas can be up to 140 characters. Yours is 5 over." A server or network failure shows the `ErrorMessage` below the button and keeps the typed text.
-- On success: the field clears, focus stays in the field, the status region says "Idea added", and the new idea appears in the list (position set by votes, newest first on ties, spec 0002).
+- On success: the field clears, focus stays on the control used (the field or the Add idea button), the status region says "Idea added", and the new idea appears in the list (position set by votes, newest first on ties, spec 0002).
 
 **3. `IdeaList`**: a `<ul>` (semantic list, so screen readers say "list, 12 items") of `IdeaRow`. A heading above it, "Ideas", with the sort note "Most votes first" in `--text-muted`. Ordering is decided by the server; the client keeps DOM order equal to visual order (no CSS `order`). After a vote the list re-sorts: the voted row moves, other rows keep their nodes, and the status region says one line such as "Vote added. Now 4 votes." If animation is used it is a scoped view transition, disabled under reduced motion; without it the list just snaps. Focus stays on the vote button that was pressed, even when its row moves.
 
@@ -181,7 +214,7 @@ All are built on native elements (`form`, `textarea`, `button`, `ul`, `li`) and 
 - Not voted: transparent fill, `--text` count, outline arrow, `aria-pressed="false"`.
 - Voted: `--accent-soft` fill, `--accent` 2 px outline, filled arrow, `aria-pressed="true"`. Filled arrow and heavier outline mean the state is visible without colour.
 - Accessible name is stable: "Upvote: <idea text>" (visually hidden prefix inside the button, the count is visible text, so the name reads "Upvote: <idea text>, 4 votes"). The toggle state comes from `aria-pressed`, the name never flips between "Upvote" and "Remove vote".
-- Press: updates the count and state at once (optimistic), then the server returns the new count and voted state (spec 0002) and the UI settles on that value. If the request fails, the button returns to its previous state and the `ErrorMessage` row-level text "Couldn't save your vote. Try again." is announced through the status region. The button is not disabled while pending (double taps are safe because the server toggle is idempotent per press and the pair is unique), but repeat presses are ignored until the first returns.
+- Press: updates the count and state at once (optimistic), then the server returns the new count and voted state (spec 0002) and the UI settles on that value. If the request fails, the button returns to its previous state and the `ErrorMessage` row-level text "Couldn't save your vote. Try again." is announced once by the alert itself (it does not also write to the status region). The button is not disabled while pending (double taps are safe because the server toggle is idempotent per press and the pair is unique), but repeat presses are ignored until the first returns.
 - Hover and press: background tint changes only; no layout shift.
 
 **6. `EmptyState`**: shown when the list has no ideas. Centred in a dashed `--border-strong` card (as in the Basecamp and Productboard references): a small icon, a heading "No ideas yet", one line "Be the first to suggest what we build next.", and a button that moves focus to the idea field ("Write an idea"). It replaces the list region, it is not a live region (it is present on load).
@@ -200,7 +233,7 @@ All are built on native elements (`form`, `textarea`, `button`, `ul`, `li`) and 
 - Focus ring: `outline: 2px solid var(--accent); outline-offset: 2px;` on `:focus-visible` for every interactive element. Never `outline: none` without a replacement. The ring is 6.70 or 7.05 against `--surface`, above the 3:1 needed. In Forced Colors Mode it becomes `Highlight`.
 - Tab order equals reading order: skip link, product name, idea field, Add idea, then vote buttons top to bottom (then, on `/admin`, Hide and Unhide buttons top to bottom). No positive `tabindex`.
 - Keys: Tab and Shift+Tab move; Enter in the idea field submits; Enter or Space presses a button; Escape does nothing special (there are no dialogs or menus at launch).
-- After a successful post, focus stays in the field. After a vote or hide, focus stays on the pressed button. After a failed action, focus stays where it was and the message is announced.
+- After a successful post, focus stays on the control used (the field or the Add idea button). After a vote or hide, focus stays on the pressed button. After a failed action, focus stays where it was and the message is announced.
 - `scroll-margin-top` on the idea field and rows so the sticky nothing (there is no sticky header) never hides the focused element; if a sticky element is added later it must set `scroll-padding-top`.
 - Pointer: `touch-action: manipulation` on buttons removes double tap zoom delay.
 
