@@ -32,6 +32,8 @@ Pick the framework, storage and hosting setup on Cloudflare Workers (matching th
   - [ ] App skeleton, scripts and `wrangler.jsonc` (with Worker Previews) per the spec
   - [ ] CI: lint, typecheck, test, build and the bundle size gate
   - [ ] Deploy `main` to `workers.dev` and a preview link per PR
+- [ ] Verify it: `/check verify stack & architecture`
+- [ ] Test it: `/test stack & architecture`
 
 spec [0001](../specs/0001-stack-architecture/index.md)
 
@@ -48,9 +50,11 @@ Ideas (text, created time, hidden flag, vote count) and votes (one per idea per 
 **Done when:** the model supports posting, voting, unvoting, hiding and sorting by votes without a breaking change later.
 - [x] Design it (spec): `/architect data model`
 - [ ] Build it inside the slices (see the spec's build plan)
-  - [ ] Tables, first migration, post and board queries: slice 1 (feature 5)
-  - [ ] Set vote query: slice 2 (feature 6)
-  - [ ] Admin list and hide or unhide: slice 3 (feature 8)
+  - [ ] Tables, first migration, post and board queries: `/develop suggest an idea and see the board`
+  - [ ] Set vote query: `/develop upvoting`
+  - [ ] Admin list and hide or unhide: `/develop hide spam`
+- [ ] Verify it: `/check verify data model`
+- [ ] Test it: `/test data model`
 
 spec [0002](../specs/0002-data-model.md)
 
@@ -59,9 +63,11 @@ A small, clean visual language for one page: type, color, spacing, the idea row,
 **Done when:** `design.md` covers tokens and the few components, with light and dark, keyboard focus and WCAG AA contrast.
 - [x] Design it (spec): `/architect design system & UI foundation`
 - [ ] Build it inside the slices (see the spec's build plan)
-  - [ ] Tokens, theme and the board components: slice 1 (feature 5)
-  - [ ] Vote button behaviour: slice 2 (feature 6)
-  - [ ] Admin row and table: slice 3 (feature 8)
+  - [ ] Tokens, theme and the board components: `/develop suggest an idea and see the board`
+  - [ ] Vote button behaviour: `/develop upvoting`
+  - [ ] Admin row and table: `/develop hide spam`
+- [ ] Verify it: `/check verify design system & UI foundation`
+- [ ] Test it: `/test design system & UI foundation`
 
 spec [0003](../specs/0003-design-system/index.md)
 
