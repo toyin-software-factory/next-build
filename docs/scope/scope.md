@@ -98,7 +98,7 @@ Out of scope for the first launch, kept so the plan stays honest.
 
 ## Legend
 
-**The decision box.** A feature that `needs a decision` carries exactly one, the sub-task whose label ends with `(spec)`. Skills locate it by that `(spec)` suffix, never by an exact label. A feature with no decision owed starts with one box, its entry command (`/develop` or `/audit`). Every box without the `(spec)` suffix is an execution box and `/architect` never ticks one.
+**The decision box.** A feature that `needs a decision` carries exactly one, the sub-task whose label ends with `(spec)`. Skills locate it by that `(spec)` suffix, never by an exact label. A feature with no decision owed starts with its entry command box (`/develop`, or `/audit` for standards & tooling). Its build box, then its verification and test boxes (`/check verify`, `/test`) when its workflow tier requires them, follow in order. Every box without the `(spec)` suffix is an execution box and `/architect` never ticks one.
 
 - **Next step** = the first unticked box (always a command or a tracked milestone).
 - **needs a decision** = run `/architect` first; otherwise straight to `/develop` (or `/audit` for standards & tooling). The tag drops once the spec is captured.
