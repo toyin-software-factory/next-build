@@ -61,6 +61,7 @@ Export the inferred types (`Idea`, `NewIdea`, `Vote`) from the schema file, and 
 - Cookie `nb_voter`: a random UUID, `HttpOnly`, `Secure` (except on `localhost`), `SameSite=Lax`, `Path=/`, `Max-Age` 400 days (the most browsers allow).
 - Set by `middleware.ts` on the first page load (any `GET` of a page) when the cookie is missing or not a valid UUID, so the browser holds one id before it can post or vote. Two quick first votes then share that id.
 - Server actions never create the id. If an action arrives without a valid cookie (cookies blocked, or a direct request), it is rejected with "Please reload the page and try again". Test: two concurrent `on` requests right after the first page load create one voter and one vote per idea.
+- Accepted limit: if two tabs open at the same instant in a brand new browser, the later response can replace the cookie, so a vote cast in that first second may belong to the earlier id. This is rare, costs at most one extra vote, and needs no locking.
 - Clearing cookies or switching browsers gives a new voter. That is the accepted limit of "one vote per browser"; Turnstile and rate limits (feature 9) handle floods.
 - Logs show only the first 8 characters of a voter id.
 
