@@ -52,9 +52,11 @@ jobs:
       - name: Migration drift check
         run: |
           pnpm db:generate
-          if [ -n "$(git status --porcelain -- drizzle)" ]; then
+          # With no migrations yet, drizzle-kit still creates an empty drizzle/meta/ folder; ignore only that.
+          changes="$(git status --porcelain -- drizzle | grep -vx '?? drizzle/meta/' || true)"
+          if [ -n "$changes" ]; then
             echo "::error::drizzle/ changed after db:generate. Commit the generated migration."
-            git status --porcelain -- drizzle
+            echo "$changes"
             exit 1
           fi
 
