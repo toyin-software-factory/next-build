@@ -31,7 +31,8 @@ test("a server action POST to /admin with a foreign Origin is refused, token or 
     data: "[]",
     maxRedirects: 0,
   });
-  expect(response.status()).toBeGreaterThanOrEqual(400);
+  // Next answers a refused Origin with 500, never 200 and never a result.
+  expect(response.status()).toBe(500);
   expect(await response.text()).not.toMatch(/"ok"\s*:\s*true/);
 });
 
@@ -49,20 +50,7 @@ test("the same POST with a same site Origin is not blocked by the Origin check",
     data: "[]",
     maxRedirects: 0,
   });
-  // Different from the foreign case: the request got past the Origin check (the action id belongs
-  // to another route, so Next answers 404 instead of the 500 Origin refusal).
-  const foreign = await request.post("/admin", {
-    headers: {
-      "Cf-Access-Jwt-Assertion": token,
-      Origin: "https://evil.example",
-      "Next-Action": anyActionId(),
-      "Content-Type": "text/plain;charset=UTF-8",
-    },
-    data: "[]",
-    maxRedirects: 0,
-  });
-  expect([response.status(), (await response.text()).length]).not.toEqual([
-    foreign.status(),
-    (await foreign.text()).length,
-  ]);
+  // The same call with a same site Origin gets past the Origin check and is served (200); the
+  // foreign Origin test above gets the 500 refusal.
+  expect(response.status()).toBe(200);
 });

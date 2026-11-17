@@ -3,7 +3,7 @@ import { afterAll, beforeEach, describe, expect, expectTypeOf, it } from "vitest
 
 import type { Admin } from "@/lib/access";
 
-import { listIdeasForAdmin, setIdeaHidden } from "./admin-queries";
+import { countIdeasForAdmin, listIdeasForAdmin, setIdeaHidden } from "./admin-queries";
 import { getBoard, insertIdea } from "./queries";
 import type { Db } from "./queries";
 import { votes } from "./schema";
@@ -40,6 +40,14 @@ describe("listIdeasForAdmin", () => {
     expect(rows.map((r) => r.id)).toEqual([B, A]);
     expect(rows[1]).toMatchObject({ votes: 1, hiddenAt: 5000 });
     expect(rows[0]).toMatchObject({ votes: 0, hiddenAt: null });
+  });
+});
+
+describe("countIdeasForAdmin", () => {
+  it("counts every idea and the hidden ones", async () => {
+    expect(await countIdeasForAdmin(admin, db)).toEqual({ total: 2, hidden: 0 });
+    await setIdeaHidden(admin, { ideaId: A, hidden: true }, db, new Date(5000));
+    expect(await countIdeasForAdmin(admin, db)).toEqual({ total: 2, hidden: 1 });
   });
 });
 

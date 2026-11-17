@@ -5,6 +5,7 @@
 // (for example with a header editor extension). It only works outside production and with no cf-ray.
 import { createPublicKey, generateKeyPairSync } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { parseEnv } from "node:util";
 
 import { SignJWT, importPKCS8 } from "jose";
 
@@ -12,13 +13,8 @@ const KEY_FILE = ".wrangler/local-access-key.json";
 const KID = "local-key-1";
 
 function readDevVars() {
-  if (!existsSync(".dev.vars")) return {};
-  return Object.fromEntries(
-    readFileSync(".dev.vars", "utf8")
-      .split("\n")
-      .filter((line) => line.includes("=") && !line.startsWith("#"))
-      .map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)]),
-  );
+  // Same dotenv syntax wrangler reads (quoted values, CRLF files).
+  return existsSync(".dev.vars") ? parseEnv(readFileSync(".dev.vars", "utf8")) : {};
 }
 
 if (!existsSync(KEY_FILE)) {

@@ -39,6 +39,19 @@ export async function listIdeasForAdmin(_admin: Admin, db: Db = getDb()): Promis
   return rows;
 }
 
+export type AdminCounts = { total: number; hidden: number };
+
+/** Totals over every idea (not capped by the list limit): all ideas, and how many are hidden. */
+export async function countIdeasForAdmin(_admin: Admin, db: Db = getDb()): Promise<AdminCounts> {
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      hidden: sql<number>`coalesce(sum(${ideas.hiddenAt} is not null), 0)`,
+    })
+    .from(ideas);
+  return { total: row?.total ?? 0, hidden: row?.hidden ?? 0 };
+}
+
 export type SetHiddenResult = { ok: true } | { ok: false; code: "not_found" };
 
 /**
