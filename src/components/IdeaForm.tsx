@@ -60,8 +60,8 @@ export function IdeaForm() {
       if (next === "over") announce(COPY.announceOver(count - MAX_IDEA_LENGTH));
       zone.current = next;
     }
-    // A field error clears as soon as the value is valid again.
-    if (fieldFailure !== null && count > 0 && count <= MAX_IDEA_LENGTH) setFailure(null);
+    // A field error describes the text that was sent, so any edit clears it (it would go stale).
+    if (fieldFailure !== null) setFailure(null);
   }
 
   async function submit(retryNoVoter = false) {
@@ -117,6 +117,7 @@ export function IdeaForm() {
         value={text}
         readOnly={sending}
         aria-busy={sending}
+        aria-required="true"
         aria-invalid={fieldFailure !== null}
         aria-describedby={fieldFailure === null ? counterId : `${counterId} ${fieldErrorId}`}
         enterKeyHint="send"
@@ -129,8 +130,9 @@ export function IdeaForm() {
         onKeyDown={(e) => {
           if (e.key !== "Enter") return;
           // Ideas are one line: Enter sends (not while an input method is composing), Shift+Enter does nothing.
+          if (e.nativeEvent.isComposing) return;
           e.preventDefault();
-          if (!e.shiftKey && !e.nativeEvent.isComposing) void submit();
+          if (!e.shiftKey) void submit();
         }}
       />
       <div className="mt-1 min-h-5">

@@ -48,6 +48,15 @@ describe("IdeaForm", () => {
     expect(screen.getByLabelText(/idea/i)).toHaveAttribute("aria-invalid", "true");
   });
 
+  it("clears the field error on any edit so it never shows a stale count", async () => {
+    postIdea.mockResolvedValue({ ok: false, code: "too_long", over: 5 });
+    render(<IdeaForm />);
+    type("x".repeat(145), { key: "Enter" });
+    expect(await screen.findByText(/./, { selector: "p[id$='-error'] span" })).toBeVisible();
+    type("x".repeat(141));
+    expect(document.querySelector("p[id$='-error']")).toBeNull();
+  });
+
   it("announces a refused submit in the status region", async () => {
     const region = document.createElement("div");
     region.id = "status";

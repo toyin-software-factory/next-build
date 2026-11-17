@@ -79,7 +79,7 @@ The public page: one text box (140 characters max, counter shown) and the list o
 - [x] Verify it: `/check verify suggest an idea and see the board`
 - [ ] Test it: `/test suggest an idea and see the board`
 
-spec [0004](../specs/0004-suggest-idea-board.md)
+spec [0004](../specs/0004-suggest-idea-board.md) · code in `src/app/page.tsx`, `src/app/actions.ts`, `src/components/`, `src/db/`, `src/lib/idea.ts`
 
 ## Slice 2: Upvoting
 
