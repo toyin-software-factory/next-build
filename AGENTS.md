@@ -26,13 +26,15 @@ pnpm test              # Vitest (src/**/*.test.ts)
 pnpm test:e2e          # Playwright + axe, desktop and mobile, runs pnpm preview
 pnpm build:worker      # opennextjs-cloudflare build (the real build gate)
 pnpm db:generate       # after editing src/db/schema.ts; commit drizzle/
-pnpm db:migrate:local | db:migrate:remote | db:migrate:preview
+pnpm db:migrate:local    # apply migrations to the local D1
+pnpm db:migrate:remote   # production D1 (Workers Builds runs it on deploy)
+pnpm db:migrate:preview  # shared preview D1 (Workers Builds runs it for previews)
 pnpm db:reset:preview  # drops app tables in the shared preview DB; owner of the open schema PR only
 ```
 
 ## Layout
 
-`src/app` routes · `src/components` shared UI · `src/lib` env, CSP, helpers · `src/db` schema and `getDb()` · `src/middleware.ts` nonce CSP · `drizzle/` generated SQL (never edit by hand) · `tests/e2e` Playwright · `docs/` scope, specs, `feature-map.md` (update when a route or feature changes) · `scripts/` · `wrangler.jsonc` (has a `previews` block) · `wrangler.preview-migrations.jsonc`.
+`src/app` routes · `src/components` shared UI · `src/lib` env, CSP, helpers · `src/db` schema and `getDb()` · `src/middleware.ts` nonce CSP, and (from slice 1, spec 0002) the `nb_voter` cookie · `drizzle/` generated SQL (never edit by hand) · `tests/e2e` Playwright · `docs/` scope, specs, `feature-map.md` (update when a route or feature changes) · `scripts/` · `wrangler.jsonc` (has a `previews` block) · `wrangler.preview-migrations.jsonc`.
 
 ## Rules
 
