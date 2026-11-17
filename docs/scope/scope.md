@@ -15,12 +15,12 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 2 | Coding standards & tooling | Foundation | done |
 | 3 | Data model | Foundation | done |
 | 4 | Design system & UI foundation | Foundation | done |
-| 5 | Suggest an idea and see the board | Slice 1 | in-progress |
+| 5 | Suggest an idea and see the board | Slice 1 | done |
 | 6 | Upvoting | Slice 2 | done |
 | 7 | Admin sign in | Slice 3 | in-progress |
 | 8 | Hide spam | Slice 3 | in-progress |
 | 9 | Abuse protection | Slice 4 | in-progress |
-| 10 | SEO and share card | Slice 4 | in-progress |
+| 10 | SEO and share card | Slice 4 | done |
 
 ## Foundations
 
@@ -67,7 +67,7 @@ spec [0003](../specs/0003-design-system/index.md)
 
 ## Slice 1: Suggest an idea and see the board
 
-### 5. Suggest an idea and see the board · in-progress
+### 5. Suggest an idea and see the board · done
 The public page: one text box (140 characters max, counter shown) and the list of visible ideas. This is the walking skeleton, live on Workers end to end.
 **Done when:** a visitor can post an idea of 1 to 140 characters, sees it on the list right away, empty and over limit input are refused with a clear message, and the empty board and error states render.
 - [x] Design it (spec): `/architect suggest an idea and see the board`
@@ -77,7 +77,7 @@ The public page: one text box (140 characters max, counter shown) and the list o
   - [x] Tokens, theme and the board components (form, list, rows)
   - [x] Empty and error states, browser proof
 - [x] Verify it: `/check verify suggest an idea and see the board`
-- [ ] Test it: `/test suggest an idea and see the board`
+- [x] Test it: `/test suggest an idea and see the board`
 
 spec [0004](../specs/0004-suggest-idea-board.md) · code in `src/app/page.tsx`, `src/app/actions.ts`, `src/components/`, `src/db/`, `src/lib/idea.ts`
 
@@ -139,15 +139,15 @@ Keep counts honest and the board clean without sign up: per visitor limits on po
 
 spec [0007](../specs/0007-abuse-protection.md) · code in `src/lib/abuse.ts`, `src/lib/turnstile.ts`, `src/db/abuse-queries.ts`, `src/components/TurnstileWidget.tsx`
 
-### 10. SEO and share card · in-progress
+### 10. SEO and share card · done
 Title, description and a share image so links look good in Slack, X and search.
 **Done when:** the page has a proper title, meta description and Open Graph card, and passes a basic Lighthouse SEO and accessibility check.
 - [x] Design it (spec): `/architect seo and share card`
 - [x] Build it: `/develop seo and share card`
   - [x] Title, description, canonical, robots and sitemap
   - [x] Share card (Open Graph and social image)
-- [ ] Verify it: `/check verify seo and share card`
-- [ ] Test it: `/test seo and share card`
+- [x] Verify it: `/check verify seo and share card`
+- [x] Test it: `/test seo and share card`
 
 spec [0008](../specs/0008-seo-share-card.md) · code in `src/app/layout.tsx`, `src/app/opengraph-image.png`, `scripts/share-card.mjs`
 
