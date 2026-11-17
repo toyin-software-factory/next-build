@@ -12,7 +12,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
 | 1 | Stack & architecture | Foundation | in-progress |
-| 2 | Coding standards & tooling | Foundation | planned |
+| 2 | Coding standards & tooling | Foundation | in-progress |
 | 3 | Data model | Foundation | planned |
 | 4 | Design system & UI foundation | Foundation | planned |
 | 5 | Suggest an idea and see the board | Slice 1 | planned |
@@ -40,8 +40,8 @@ spec [0001](../specs/0001-stack-architecture/index.md)
 ### 2. Coding standards & tooling
 Capture the conventions from the real scaffold into root `AGENTS.md`, then install the matching lint and format tooling.
 **Done when:** root `AGENTS.md` reflects the real stack, and lint, format and typecheck run clean in CI.
-- [ ] Capture conventions + tooling choices: `/audit`
-- [ ] Install the tooling: `/develop tooling`
+- [x] Capture conventions + tooling choices: `/audit`
+- [x] Install the tooling: `/develop tooling` (already in the scaffold: ESLint, Prettier, typecheck, pre commit hook, CI)
 - [ ] Verify it: `/check verify tooling`
 - [ ] Test it: `/test tooling`
 
