@@ -23,3 +23,32 @@ export function parseIdeaText(raw: string): ParsedIdea {
     return { ok: false, code: "too_long", over: length - MAX_IDEA_LENGTH };
   return { ok: true, text };
 }
+
+export const setVoteInputSchema = z.object({
+  ideaId: z.uuid(),
+  want: z.enum(["on", "off"]),
+});
+
+export const VOTE_ERROR_CODES = [
+  "invalid",
+  "no_voter",
+  "idea_unavailable",
+  "rate_limited",
+  "server",
+] as const;
+
+export type VoteErrorCode = (typeof VOTE_ERROR_CODES)[number];
+
+export type VoteResult =
+  { ok: true; count: number; voted: boolean } | { ok: false; code: VoteErrorCode };
+
+const voteResultSchema = z.union([
+  z.object({ ok: z.literal(true), count: z.number().int().min(0), voted: z.boolean() }),
+  z.object({ ok: z.literal(false), code: z.enum(VOTE_ERROR_CODES) }),
+]);
+
+/** What the client does with an answer it cannot trust: anything that is not a VoteResult is `server`. */
+export function readVoteResult(value: unknown): VoteResult {
+  const parsed = voteResultSchema.safeParse(value);
+  return parsed.success ? parsed.data : { ok: false, code: "server" };
+}
