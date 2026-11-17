@@ -17,8 +17,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 4 | Design system & UI foundation | Foundation | in-progress |
 | 5 | Suggest an idea and see the board | Slice 1 | in-progress |
 | 6 | Upvoting | Slice 2 | done |
-| 7 | Admin sign in | Slice 3 | in-progress |
-| 8 | Hide spam | Slice 3 | in-progress |
+| 7 | Admin sign in | Slice 3 | done |
+| 8 | Hide spam | Slice 3 | done |
 | 9 | Abuse protection | Slice 4 | in-progress |
 | 10 | SEO and share card | Slice 4 | in-progress |
 
@@ -99,7 +99,7 @@ spec [0005](../specs/0005-upvoting.md) · code in `src/components/VoteButton.tsx
 
 ## Slice 3: Moderation
 
-### 7. Admin sign in · in-progress
+### 7. Admin sign in · done
 A private admin area only Toyin can reach.
 **Done when:** `/admin` and every admin action are refused for anyone but Toyin, checked on the server.
 - [x] Design it (spec): `/architect admin sign in`
@@ -109,18 +109,18 @@ A private admin area only Toyin can reach.
   - [x] Middleware check and refusal page, local test token
   - [ ] Thin `/admin` page behind the check, deploy, dashboard steps with Toyin
 - [ ] Verify it: `/check verify admin sign in`
-- [ ] Test it: `/test admin sign in`
+- [x] Test it: `/test admin sign in`
 
 spec [0006](../specs/0006-admin-sign-in.md)
 
-### 8. Hide spam · in-progress
+### 8. Hide spam · done
 An admin page listing every idea, visible and hidden, with Hide and Unhide.
 **Done when:** Toyin can hide or unhide any idea in one click; hidden ideas disappear from the public list and can't be voted on.
 - [x] Build it: `/develop hide spam`
   - [x] Admin list of every idea, visible and hidden (admin row and table)
   - [x] Hide and Unhide through `setHidden`, hidden ideas gone from the board and not votable
 - [x] Verify it: `/check verify hide spam`
-- [ ] Test it: `/test hide spam`
+- [x] Test it: `/test hide spam`
 
 ## Slice 4: Hardening and polish
 
