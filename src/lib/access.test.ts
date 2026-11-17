@@ -337,3 +337,61 @@ describe("Admin ESLint bans (spec 0006)", () => {
     expect(await lint("src/lib/access.ts", asCast)).toEqual([]);
   });
 });
+
+describe("Access settings from Worker bindings", () => {
+  afterEach(() => {
+    vi.doUnmock("@opennextjs/cloudflare");
+    vi.resetModules();
+  });
+
+  const bound = {
+    ACCESS_TEAM_DOMAIN: "team.cloudflareaccess.com",
+    ACCESS_AUD: "aud-bound",
+    ADMIN_EMAIL: "Admin@X.test",
+  };
+
+  it("reads the settings from the Cloudflare bindings when process.env has none", async () => {
+    vi.resetModules();
+    vi.doMock("@opennextjs/cloudflare", () => ({ getCloudflareContext: () => ({ env: bound }) }));
+    const mod = await import("./access");
+    expect(await mod.loadAccessConfig()).toEqual({
+      teamDomain: "team.cloudflareaccess.com",
+      audience: "aud-bound",
+      adminEmail: "admin@x.test",
+    });
+  });
+
+  it("lets a binding win over process.env, name by name", async () => {
+    vi.resetModules();
+    vi.doMock("@opennextjs/cloudflare", () => ({
+      getCloudflareContext: () => ({ env: { ACCESS_AUD: "from-binding" } }),
+    }));
+    const mod = await import("./access");
+    expect(await mod.readAccessSource({ ACCESS_AUD: "from-env", ADMIN_EMAIL: "a@x.test" })).toEqual(
+      {
+        ACCESS_TEAM_DOMAIN: undefined,
+        ACCESS_AUD: "from-binding",
+        ADMIN_EMAIL: "a@x.test",
+      },
+    );
+  });
+
+  it("falls back to process.env when there is no Cloudflare context", async () => {
+    vi.resetModules();
+    vi.doMock("@opennextjs/cloudflare", () => ({
+      getCloudflareContext: () => {
+        throw new Error("no context");
+      },
+    }));
+    const mod = await import("./access");
+    const source = await mod.readAccessSource({ ...bound });
+    expect(mod.readAccessConfig(source)).not.toBeNull();
+  });
+
+  it("is not configured (fails closed) when neither place has the settings", async () => {
+    vi.resetModules();
+    vi.doMock("@opennextjs/cloudflare", () => ({ getCloudflareContext: () => ({ env: {} }) }));
+    const mod = await import("./access");
+    expect(mod.readAccessConfig(await mod.readAccessSource({}))).toBeNull();
+  });
+});

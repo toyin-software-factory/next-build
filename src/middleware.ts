@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { checkAccess, logRefusal, readAccessConfig } from "@/lib/access";
+import { checkAccess, loadAccessConfig, logRefusal } from "@/lib/access";
 import { ADMIN_HEADERS, isAdminPath, refusalHtml } from "@/lib/admin-refusal";
 import { buildContentSecurityPolicy, generateNonce } from "@/lib/csp";
 import { ensureVoterCookie } from "@/lib/voter-cookie";
@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
   // /admin and everything under it: the Worker checks the Access token itself (spec 0006). The page
   // and every admin action check again, so this is one of three locks, not the only one.
   if (isAdminPath(request.nextUrl.pathname)) {
-    const access = await checkAccess(request.headers, readAccessConfig());
+    const access = await checkAccess(request.headers, await loadAccessConfig());
     if (!access.ok) {
       logRefusal("middleware", access.reason);
       return new NextResponse(refusalHtml(nonce), {

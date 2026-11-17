@@ -41,6 +41,37 @@ export function readAccessConfig(
   return { teamDomain, audience, adminEmail };
 }
 
+const ACCESS_NAMES = ["ACCESS_TEAM_DOMAIN", "ACCESS_AUD", "ADMIN_EMAIL"] as const;
+
+/**
+ * The three Access settings as the running Worker sees them. Secrets and vars set in Cloudflare reach
+ * the Worker as bindings (`getCloudflareContext().env`), which is where env.ts and abuse.ts read
+ * theirs, so those win. `process.env` is the fallback (local `next dev`, tests). Never throws.
+ */
+export async function readAccessSource(
+  fallback: Record<string, string | undefined> = process.env,
+): Promise<Record<string, string | undefined>> {
+  let bindings: Record<string, unknown> = {};
+  try {
+    // Loaded on use so nothing outside the Workers build pulls in the adapter.
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    bindings = getCloudflareContext().env as unknown as Record<string, unknown>;
+  } catch {
+    bindings = {};
+  }
+  const source: Record<string, string | undefined> = {};
+  for (const name of ACCESS_NAMES) {
+    const bound = bindings[name];
+    source[name] = typeof bound === "string" && bound !== "" ? bound : fallback[name];
+  }
+  return source;
+}
+
+/** The Access config for this request: bindings first, then process.env. Null fails closed. */
+export async function loadAccessConfig(): Promise<AccessConfig | null> {
+  return readAccessConfig(await readAccessSource());
+}
+
 const keySetSchema = z.object({ keys: z.array(z.record(z.string(), z.unknown())) });
 
 let cachedKeys: { teamDomain: string; keys: JWK[] } | null = null;
@@ -165,8 +196,9 @@ export async function verifyAccessToken(
  */
 export async function checkAccess(
   headers: Headers,
-  config: AccessConfig | null = readAccessConfig(),
+  suppliedConfig?: AccessConfig | null,
 ): Promise<AccessResult> {
+  const config = suppliedConfig === undefined ? await loadAccessConfig() : suppliedConfig;
   if (config === null) return { ok: false, reason: "not_configured" };
   const token = headers.get("cf-access-jwt-assertion");
   if (token === null || token === "") return { ok: false, reason: "no_token" };
