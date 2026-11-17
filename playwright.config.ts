@@ -7,12 +7,12 @@ const baseURL = `http://localhost:${String(PORT)}`;
 const isCI = Boolean(process.env.CI);
 
 // The Worker trusts a throwaway key (ACCESS_LOCAL_JWKS works only outside production and with no
-// cf-ray header, spec 0006). Single quotes keep the JSON in one shell argument.
+// cf-ray header, spec 0006). Base64 because wrangler strips the quotes from plain JSON values.
 const accessVars = [
   `ACCESS_TEAM_DOMAIN:${E2E_ACCESS.teamDomain}`,
   `ACCESS_AUD:${E2E_ACCESS.audience}`,
   `ADMIN_EMAIL:${E2E_ACCESS.adminEmail}`,
-  `ACCESS_LOCAL_JWKS:${e2ePublicKeySet()}`,
+  `ACCESS_LOCAL_JWKS:${Buffer.from(e2ePublicKeySet()).toString("base64")}`,
 ]
   .map((pair) => `--var '${pair}'`)
   .join(" ");

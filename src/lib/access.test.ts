@@ -272,6 +272,11 @@ describe("local keys guard", () => {
   it("is ignored when malformed", () => {
     vi.stubEnv("APP_ENV", "preview");
     expect(readLocalKeys(new Headers(), { ACCESS_LOCAL_JWKS: "{nope" })).toBeNull();
+    expect(readLocalKeys(new Headers(), { ACCESS_LOCAL_JWKS: "%%%not base64" })).toBeNull();
+    const encoded = btoa(env.ACCESS_LOCAL_JWKS);
+    expect(readLocalKeys(new Headers(), { ACCESS_LOCAL_JWKS: encoded })).toEqual([
+      { kty: "RSA", kid: "k1" },
+    ]);
   });
 });
 

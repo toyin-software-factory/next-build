@@ -97,7 +97,9 @@ export function readLocalKeys(
   const raw = source.ACCESS_LOCAL_JWKS;
   if (raw === undefined || raw === "") return null;
   try {
-    const parsed = keySetSchema.safeParse(JSON.parse(raw));
+    // Plain JSON, or the same JSON in base64 (command line tools strip the quotes from plain JSON).
+    const json = raw.trimStart().startsWith("{") ? raw : atob(raw);
+    const parsed = keySetSchema.safeParse(JSON.parse(json));
     return parsed.success ? parsed.data.keys : null;
   } catch {
     return null;

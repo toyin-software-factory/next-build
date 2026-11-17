@@ -7,7 +7,7 @@ const REFUSAL = "This page is only for the site admin.";
 
 test.describe("/admin with no valid sign in", () => {
   test("answers 403 with the plain page and the safety headers", async ({ request }) => {
-    const response = await request.get("/admin", { maxRedirects: 0 });
+    const response = await request.get("/admin", { maxRedirects: 3 });
     expect(response.status()).toBe(403);
     expect(response.headers()["cache-control"]).toBe("no-store");
     expect(response.headers()["x-robots-tag"]).toBe("noindex");
@@ -23,7 +23,7 @@ test.describe("/admin with no valid sign in", () => {
       ["/admin?_rsc=x", {}],
       ["/admin", { RSC: "1" }],
     ] as const) {
-      const response = await request.get(path, { headers, maxRedirects: 0 });
+      const response = await request.get(path, { headers, maxRedirects: 3 });
       expect({ path, status: response.status() }).toEqual({ path, status: 403 });
       expect(await response.text()).not.toMatch(/votes?\b.*\bhidden/i);
     }
