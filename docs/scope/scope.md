@@ -31,7 +31,7 @@ Pick the framework, storage and hosting setup on Cloudflare Workers (matching th
 - [x] Scaffold from the decision: `/develop stack & architecture`
   - [x] App skeleton, scripts and `wrangler.jsonc` (with Worker Previews) per the spec
   - [x] CI: lint, typecheck, test, build and the bundle size gate
-  - [ ] Deploy `main` to `workers.dev` and a preview link per PR
+  - [x] Deploy `main` to `workers.dev` and a preview link per PR
 - [ ] Verify it: `/check verify stack & architecture`
 - [ ] Test it: `/test stack & architecture`
 
@@ -49,10 +49,7 @@ Capture the conventions from the real scaffold into root `AGENTS.md`, then insta
 Ideas (text, created time, hidden flag, vote count) and votes (one per idea per browser), shaped so sorting by votes stays fast and counts stay correct.
 **Done when:** the model supports posting, voting, unvoting, hiding and sorting by votes without a breaking change later.
 - [x] Design it (spec): `/architect data model`
-- [ ] Build it inside the slices (see the spec's build plan)
-  - [x] Tables, first migration, post and board queries: `/develop suggest an idea and see the board`
-  - [ ] Set vote query: `/develop upvoting`
-  - [ ] Admin list and hide or unhide: `/develop hide spam`
+- [ ] Build it inside the slices (see the spec's build plan). Progress is ticked on the slice features, not here: tables and board queries in feature 5, the set vote query in feature 6, admin list and hide in feature 8. Tick this box when those three are built.
 - [ ] Verify it: `/check verify data model`
 - [ ] Test it: `/test data model`
 
@@ -62,10 +59,7 @@ spec [0002](../specs/0002-data-model.md)
 A small, clean visual language for one page: type, color, spacing, the idea row, the vote button, the input. Backed by Mobbin references.
 **Done when:** `design.md` covers tokens and the few components, with light and dark, keyboard focus and WCAG AA contrast.
 - [x] Design it (spec): `/architect design system & UI foundation`
-- [ ] Build it inside the slices (see the spec's build plan)
-  - [x] Tokens, theme and the board components: `/develop suggest an idea and see the board`
-  - [ ] Vote button behaviour: `/develop upvoting`
-  - [ ] Admin row and table: `/develop hide spam`
+- [ ] Build it inside the slices (see the spec's build plan). Progress is ticked on the slice features, not here: tokens, theme and board components in feature 5, the vote button in feature 6, the admin row and table in feature 8. Tick this box when those three are built.
 - [ ] Verify it: `/check verify design system & UI foundation`
 - [ ] Test it: `/test design system & UI foundation`
 
@@ -73,43 +67,84 @@ spec [0003](../specs/0003-design-system/index.md)
 
 ## Slice 1: Suggest an idea and see the board
 
-### 5. Suggest an idea and see the board · needs a decision
+### 5. Suggest an idea and see the board · in-progress
 The public page: one text box (140 characters max, counter shown) and the list of visible ideas. This is the walking skeleton, live on Workers end to end.
 **Done when:** a visitor can post an idea of 1 to 140 characters, sees it on the list right away, empty and over limit input are refused with a clear message, and the empty board and error states render.
-- [ ] Design it (spec): `/architect suggest an idea and see the board`
+- [x] Design it (spec): `/architect suggest an idea and see the board`
+- [x] Build it: `/develop suggest an idea and see the board`
+  - [x] Text rules, `ideas` and `votes` tables, first migration, voter cookie
+  - [x] Post action and board query, the thin thread live on Workers
+  - [x] Tokens, theme and the board components (form, list, rows)
+  - [x] Empty and error states, browser proof
+- [x] Verify it: `/check verify suggest an idea and see the board`
+- [ ] Test it: `/test suggest an idea and see the board`
+
+spec [0004](../specs/0004-suggest-idea-board.md)
 
 ## Slice 2: Upvoting
 
-### 6. Upvoting · needs a decision
+### 6. Upvoting
 A vote button on each idea. One vote per idea per browser, tapping again removes it, and the list is sorted by votes.
 **Done when:** a browser can vote once per idea, a second tap removes the vote, the count updates right away, the same browser can't double count by repeated requests, and the list is ordered by votes (newest first on ties).
-- [ ] Design it (spec): `/architect upvoting`
+- [x] Design it (spec): `/architect upvoting`
+- [ ] Build it: `/develop upvoting`
+  - [ ] `setVote` query and action, the `checkVote` seam
+  - [ ] Thin thread: a plain vote button, sorted list
+  - [ ] `VoteButton` behaviour and failure states
+  - [ ] Browser proof
+- [ ] Verify it: `/check verify upvoting`
+- [ ] Test it: `/test upvoting`
+
+spec [0005](../specs/0005-upvoting.md)
 
 ## Slice 3: Moderation
 
-### 7. Admin sign in · needs a decision
+### 7. Admin sign in
 A private admin area only Toyin can reach.
 **Done when:** `/admin` and every admin action are refused for anyone but Toyin, checked on the server.
-- [ ] Design it (spec): `/architect admin sign in`
+- [x] Design it (spec): `/architect admin sign in`
+- [ ] Build it: `/develop admin sign in`
+  - [ ] Token verifier and key cache (`src/lib/access.ts`)
+  - [ ] `requireAdmin()` proof, admin queries and the `setHidden` action
+  - [ ] Middleware check and refusal page, local test token
+  - [ ] Thin `/admin` page behind the check, deploy, dashboard steps with Toyin
+- [ ] Verify it: `/check verify admin sign in`
+- [ ] Test it: `/test admin sign in`
+
+spec [0006](../specs/0006-admin-sign-in.md)
 
 ### 8. Hide spam
 An admin page listing every idea, visible and hidden, with Hide and Unhide.
 **Done when:** Toyin can hide or unhide any idea in one click; hidden ideas disappear from the public list and can't be voted on.
 - [ ] Build it: `/develop hide spam`
+  - [ ] Admin list of every idea, visible and hidden (admin row and table)
+  - [ ] Hide and Unhide through `setHidden`, hidden ideas gone from the board and not votable
 - [ ] Verify it: `/check verify hide spam`
 - [ ] Test it: `/test hide spam`
 
 ## Slice 4: Hardening and polish
 
-### 9. Abuse protection · needs a decision
+### 9. Abuse protection
 Keep counts honest and the board clean without sign up: per visitor limits on posting and voting, and an invisible bot check on posting.
 **Done when:** bursts of posts or votes from one visitor are refused with a friendly message, and scripted posts without the bot check pass are rejected.
-- [ ] Design it (spec): `/architect abuse protection`
+- [x] Design it (spec): `/architect abuse protection`
+- [ ] Build it: `/develop abuse protection`
+  - [ ] `rate_events` table, migration and hourly limit queries
+  - [ ] `checkPost` and `checkVote` with burst and hourly limits
+  - [ ] Turnstile check on the server
+  - [ ] Turnstile widget in the post form
+  - [ ] Dashboard steps with Toyin and the production check
+- [ ] Verify it: `/check verify abuse protection`
+- [ ] Test it: `/test abuse protection`
+
+spec [0007](../specs/0007-abuse-protection.md)
 
 ### 10. SEO and share card
 Title, description and a share image so links look good in Slack, X and search.
 **Done when:** the page has a proper title, meta description and Open Graph card, and passes a basic Lighthouse SEO and accessibility check.
 - [ ] Build it: `/develop seo and share card`
+  - [ ] Title, description, canonical, robots and sitemap
+  - [ ] Share card (Open Graph and social image)
 - [ ] Verify it: `/check verify seo and share card`
 - [ ] Test it: `/test seo and share card`
 
