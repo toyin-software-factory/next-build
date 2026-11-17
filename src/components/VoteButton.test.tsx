@@ -177,6 +177,12 @@ describe("VoteButton", () => {
     const button = setup();
     fireEvent.click(button);
     await screen.findByRole("alert");
+    // The alert shows before the transition ends and the optimistic vote is dropped. Wait for the
+    // button to settle, or the click would still read the optimistic "voted" state and send "off".
+    await waitFor(() => {
+      expect(button).toHaveAttribute("aria-pressed", "false");
+      expect(button).not.toHaveAttribute("aria-disabled");
+    });
     setVote.mockResolvedValueOnce({ ok: true, count: 3, voted: true });
     fireEvent.click(button);
     await waitFor(() => {
