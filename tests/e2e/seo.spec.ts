@@ -26,6 +26,22 @@ test.describe("SEO and share card", () => {
     expect(await meta('meta[name="twitter:image"]')).toMatch(/opengraph-image/);
   });
 
+  test("canonical, og:url and the images share one origin, and twitter uses the same image (AC-2)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const meta = (selector: string) => page.locator(selector).getAttribute("content");
+    const canonical = new URL(
+      (await page.locator('link[rel="canonical"]').getAttribute("href")) ?? "",
+    );
+    const ogUrl = new URL((await meta('meta[property="og:url"]')) ?? "");
+    const ogImage = new URL((await meta('meta[property="og:image"]')) ?? "");
+    expect(ogUrl.origin).toBe(canonical.origin);
+    expect(ogImage.origin).toBe(canonical.origin);
+    expect(await meta('meta[name="twitter:image"]')).toBe(ogImage.href);
+    expect(await meta('meta[name="twitter:image:alt"]')).toBeTruthy();
+  });
+
   test("the share image is a 1200 by 630 PNG (AC-3)", async ({ page, request }) => {
     await page.goto("/");
     const url = new URL(
@@ -34,6 +50,7 @@ test.describe("SEO and share card", () => {
     const response = await request.get(url.pathname + url.search);
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("image/png");
+    expect(response.headers()["cache-control"]).toBeTruthy();
     const body = await response.body();
     expect(body.subarray(1, 4).toString()).toBe("PNG");
     expect(body.readUInt32BE(16)).toBe(1200);
