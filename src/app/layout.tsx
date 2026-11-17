@@ -14,10 +14,23 @@ const inter = localFont({
   fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
 });
 
+const TITLE = "Next Build: suggest and vote on what we build next";
+const DESCRIPTION =
+  "One page where anyone suggests what to build next in 140 characters and upvotes the ideas they want. No sign up.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
-  title: "Next Build ideas board",
-  description: "Suggest what we build next, and upvote the ideas you want.",
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Next Build",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 export const viewport = { colorScheme: "light dark" } as const;

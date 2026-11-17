@@ -14,4 +14,4 @@ Every page and user facing feature, by the name used in `docs/scope/scope.md`, w
 | Admin sign in (7) | `/admin` and every admin action | Toyin's email only | Cloudflare Access login, then `/admin` | `src/lib/access.ts`, `src/lib/admin-refusal.ts`, `src/db/admin-queries.ts`, `src/middleware.ts`, `src/app/admin/` | built (verifier, 403 in middleware, `requireAdmin`, `setHidden` action, thin page; production Access setup pending) |
 | Hide spam (8) | `/admin` | Toyin's email only | Sign in, then Hide or Unhide on an idea | `src/app/admin/`, `src/db/` | planned |
 | Abuse protection (9) | `/` (posting and voting) | Anyone | n/a (invisible check, friendly refusal) | `src/lib/turnstile.ts`, `src/lib/rate-limit.ts` | planned |
-| SEO and share card (10) | `/` (metadata, share image) | Anyone | Share a link | `src/app/layout.tsx`, `src/app/opengraph-image.tsx` | planned |
+| SEO and share card (10) | `/` (metadata, share image) | Anyone | Share a link | `src/app/layout.tsx`, `src/app/opengraph-image.png` | in-progress |
