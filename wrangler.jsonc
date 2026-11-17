@@ -11,13 +11,11 @@
   "observability": {
     "enabled": true,
   },
-  // Production database. TODO(FSD-T01): placeholder id. Replace with the real
-  // `next-build` database id once Toyin creates it (ids are not secret).
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "next-build",
-      "database_id": "00000000-0000-0000-0000-000000000001",
+      "database_id": "684985c3-e937-4b24-8e33-cda0ee39b87c",
       "migrations_dir": "drizzle",
     },
   ],
@@ -44,9 +42,8 @@
     "d1_databases": [
       {
         "binding": "DB",
-        // TODO(FSD-T01): placeholder id. Replace with the real `next-build-preview` id.
         "database_name": "next-build-preview",
-        "database_id": "00000000-0000-0000-0000-000000000002",
+        "database_id": "ddf3ab27-fa82-4a70-b5f4-f9dfaf87ae87",
         "migrations_dir": "drizzle",
       },
     ],

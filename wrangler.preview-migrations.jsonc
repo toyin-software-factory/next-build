@@ -9,8 +9,7 @@
     {
       "binding": "DB",
       "database_name": "next-build-preview",
-      // TODO(FSD-T01): placeholder id. Same value as previews.d1_databases in wrangler.jsonc.
-      "database_id": "00000000-0000-0000-0000-000000000002",
+      "database_id": "ddf3ab27-fa82-4a70-b5f4-f9dfaf87ae87",
       "migrations_dir": "drizzle",
     },
   ],
