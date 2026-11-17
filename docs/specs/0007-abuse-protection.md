@@ -1,7 +1,7 @@
 # 0007. Slice 4: abuse protection
 
 **Date**: 2026-11-17
-**Status**: Proposed
+**Status**: In Progress
 **Feature**: scope feature 9, "Abuse protection" (Slice 4)
 
 ## Summary

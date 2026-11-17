@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 
-import { insertIdea, setVote as setVoteQuery } from "@/db/queries";
+import { ideaExists, insertIdea, setVote as setVoteQuery } from "@/db/queries";
 import { checkPost, checkVote } from "@/lib/abuse";
 import { getVoterId } from "@/lib/voter";
 import { parseIdeaText, postIdeaInputSchema, setVoteInputSchema } from "@/lib/schemas";
@@ -31,9 +31,30 @@ export async function postIdea(input: unknown): Promise<PostResult> {
     return { ok: false, code: parsed.code, over: parsed.over };
   }
 
+  // A retry after a lost answer: the idea is already saved, so answer success without using a slot (AC-17).
+  try {
+    if (await ideaExists(parsedInput.data.submissionId)) {
+      logPost({ event: "idea_posted", code: "ok", voterId });
+      return { ok: true };
+    }
+  } catch {
+    // The lookup is only a shortcut: the checks and the insert below still run.
+  }
+
   const ip = (await headers()).get("cf-connecting-ip");
-  const check = await checkPost({ voterId, ip });
+  const check = await checkPost({ voterId, ip, token: parsedInput.data.token });
   if (!check.ok) {
+    // A retry may have lost a race with the original request, which saved the idea (AC-17).
+    if (check.code === "rate_limited") {
+      try {
+        if (await ideaExists(parsedInput.data.submissionId)) {
+          logPost({ event: "idea_posted", code: "ok", voterId });
+          return { ok: true };
+        }
+      } catch {
+        // Keep the refusal.
+      }
+    }
     logPost({ event: "idea_refused", code: check.code, voterId });
     return { ok: false, code: check.code };
   }

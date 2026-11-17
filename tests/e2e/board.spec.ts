@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // The local D1 is shared by every test, so each test posts text no other test uses.
 const unique = (label: string) => `${label} ${crypto.randomUUID().slice(0, 8)}`;
@@ -20,6 +20,8 @@ test("a posted idea survives a reload and the Add idea button works", async ({ p
   await page.getByLabel("Your idea").fill(text);
   await page.getByRole("button", { name: "Add idea" }).click();
   await expect(page.getByText(text)).toBeVisible();
+  // The row shows before the server confirms. The bot check adds a round trip, so wait for it.
+  await expect(page.locator("#status")).toHaveText("Idea added");
   await page.reload();
   await expect(page.getByText(text)).toBeVisible();
 });

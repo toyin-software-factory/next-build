@@ -14,9 +14,19 @@ vi.mock("@/db/client", () => ({ getDb: () => state.db }));
 const checkVote = vi.hoisted(() =>
   vi.fn<() => Promise<{ ok: true } | { ok: false; code: "rate_limited" }>>(),
 );
+const checkPost = vi.hoisted(() =>
+  vi.fn<
+    (input: {
+      voterId: string;
+      ip: string | null;
+      token?: string;
+    }) => Promise<{ ok: true } | { ok: false; code: "rate_limited" | "challenge_failed" }>
+  >(),
+);
 vi.mock("@/lib/abuse", async (original) => ({
   ...(await original<typeof import("@/lib/abuse")>()),
   checkVote,
+  checkPost,
 }));
 
 import { createTestDb, disposeTestDb } from "@/db/test-db";
@@ -36,11 +46,58 @@ beforeEach(async () => {
   state.db = await createTestDb();
   checkVote.mockReset();
   checkVote.mockResolvedValue({ ok: true });
+  checkPost.mockReset();
+  checkPost.mockResolvedValue({ ok: true });
 });
 
 afterAll(disposeTestDb);
 
 const rows = () => (state.db as queries.Db).select().from(ideas);
+
+describe("postIdea abuse checks", () => {
+  it("runs checkPost after validation and passes the token, and returns its refusal without storing", async () => {
+    await postIdea({ submissionId: SUB, text: "   " });
+    expect(checkPost).not.toHaveBeenCalled();
+    checkPost.mockResolvedValueOnce({ ok: false, code: "challenge_failed" });
+    expect(await postIdea({ submissionId: SUB, text: "Dark mode", token: "tok" })).toEqual({
+      ok: false,
+      code: "challenge_failed",
+    });
+    expect(checkPost).toHaveBeenCalledWith({ voterId: VOTER, ip: null, token: "tok" });
+    expect(await rows()).toHaveLength(0);
+    checkPost.mockResolvedValueOnce({ ok: false, code: "rate_limited" });
+    expect(await postIdea({ submissionId: SUB, text: "Dark mode" })).toEqual({
+      ok: false,
+      code: "rate_limited",
+    });
+    expect(await rows()).toHaveLength(0);
+  });
+
+  it("answers a retry of a saved idea with success and runs no abuse check (AC-17)", async () => {
+    expect(await postIdea({ submissionId: SUB, text: "Dark mode" })).toEqual({ ok: true });
+    checkPost.mockClear();
+    checkPost.mockResolvedValue({ ok: false, code: "rate_limited" });
+    expect(await postIdea({ submissionId: SUB, text: "Dark mode" })).toEqual({ ok: true });
+    expect(checkPost).not.toHaveBeenCalled();
+    expect(await rows()).toHaveLength(1);
+  });
+
+  it("answers success when the idea was saved while the check refused (AC-17 race)", async () => {
+    const lookup = vi.spyOn(queries, "ideaExists");
+    lookup.mockResolvedValueOnce(false);
+    checkPost.mockImplementationOnce(async () => {
+      await postIdea({ submissionId: SUB, text: "Dark mode" });
+      return { ok: false, code: "rate_limited" };
+    });
+    expect(await postIdea({ submissionId: SUB, text: "Dark mode" })).toEqual({ ok: true });
+  });
+
+  it("still runs the checks when the lookup fails", async () => {
+    vi.spyOn(queries, "ideaExists").mockRejectedValueOnce(new Error("d1 down"));
+    expect(await postIdea({ submissionId: SUB, text: "Dark mode" })).toEqual({ ok: true });
+    expect(checkPost).toHaveBeenCalledOnce();
+  });
+});
 
 describe("postIdea", () => {
   it("stores a valid idea and normalizes it", async () => {

@@ -32,3 +32,52 @@ export function getSiteUrl(): string {
   const parsed = z.url().safeParse(process.env.NEXT_PUBLIC_SITE_URL);
   return (parsed.success ? parsed.data : DEFAULT_SITE_URL).replace(/\/$/, "");
 }
+
+const secretSchema = z.string().min(16).max(256);
+
+/**
+ * The salt for the address hash (spec 0007). A Worker secret in previews and production, set from
+ * .dev.vars locally. Null when missing or too short: the caller then skips the address limits and
+ * never falls back to a shared key. Never logged.
+ */
+export async function getAbuseSalt(): Promise<string | null> {
+  try {
+    // Loaded on use so next.config.ts, which imports this file, never pulls in the Workers adapter.
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const parsed = secretSchema.safeParse(
+      (getCloudflareContext().env as { ABUSE_SALT?: unknown }).ABUSE_SALT,
+    );
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Turnstile secret: the Worker secret in production (null when missing), the test secret elsewhere. */
+export async function getTurnstileSecret(): Promise<string | null> {
+  if (getAppEnv() !== "production") return TURNSTILE_TEST_SECRET_KEY;
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const parsed = z
+      .string()
+      .min(1)
+      .safeParse(
+        (getCloudflareContext().env as { TURNSTILE_SECRET_KEY?: unknown }).TURNSTILE_SECRET_KEY,
+      );
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Turnstile site key, inlined at build time: the real key in production (null when missing), the test key elsewhere. */
+export function getTurnstileSiteKey(): string | null {
+  if (getAppEnv() !== "production") return TURNSTILE_TEST_SITE_KEY;
+  const parsed = z.string().min(1).safeParse(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+  return parsed.success ? parsed.data : null;
+}
+
+/** True when NEXT_PUBLIC_SITE_URL is a real URL (getSiteUrl quietly falls back to localhost). */
+export function isSiteUrlConfigured(): boolean {
+  return z.url().safeParse(process.env.NEXT_PUBLIC_SITE_URL).success;
+}

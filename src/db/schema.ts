@@ -30,6 +30,26 @@ export const votes = sqliteTable(
   (t) => [primaryKey({ columns: [t.ideaId, t.voterId] }), index("votes_voter_idx").on(t.voterId)],
 );
 
+/**
+ * Spec 0007. One row per allowed post or vote, so the hourly limits can count them. voter_key is the
+ * voter id, ip_key is the salted address hash (or "none"), window_start is the clock hour in ms.
+ * Rows older than the previous hour are deleted by the next allowed request.
+ */
+export const rateEvents = sqliteTable(
+  "rate_events",
+  {
+    kind: text("kind", { enum: ["post", "vote"] }).notNull(),
+    voterKey: text("voter_key").notNull(),
+    ipKey: text("ip_key").notNull(),
+    windowStart: integer("window_start").notNull(),
+  },
+  (t) => [
+    index("rate_events_voter_idx").on(t.kind, t.voterKey, t.windowStart),
+    index("rate_events_ip_idx").on(t.kind, t.ipKey, t.windowStart),
+    index("rate_events_window_idx").on(t.windowStart),
+  ],
+);
+
 export type Idea = typeof ideas.$inferSelect;
 export type NewIdea = typeof ideas.$inferInsert;
 export type Vote = typeof votes.$inferSelect;
