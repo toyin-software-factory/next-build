@@ -30,8 +30,8 @@ The Access application is a self hosted application on the `workers.dev` host wi
 - **AC-6**: The admin queries cannot be called without proof of a verified admin. The proof is a value only `requireAdmin()` can create, and the query signatures demand it, so a new admin query written without the check does not compile.
 - **AC-7**: If Cloudflare's public keys cannot be fetched, the request is refused (not allowed through), and the next request tries again. A key rotation at Cloudflare needs no deploy: an unknown key id triggers one refetch.
 - **AC-8**: Logs for a refusal hold only `{ event: 'admin_refused', surface, reason }`. Never the token, the email, the IP or the audience.
-- **AC-9**: A token made for the production Access application is refused on a preview, and the other way round, because the audience differs.
-- **AC-10**: Local runs and CI reach `/admin` with a token signed by a throwaway test key. The test key is trusted only when the request host is `localhost` or `127.0.0.1`, and never on a deployed Worker (a test sets the variable and a `workers.dev` host and expects a 403).
+- **AC-9**: A token made for the production Access application is refused on a preview, and the other way round, because the audience differs. Checked by a unit test (two configs with different audiences), not in a browser, because a preview Access application may not exist.
+- **AC-10**: Local runs and CI reach `/admin` with a token signed by a throwaway test key. The test key is trusted only when `getAppEnv()` is not `production` and the request has no `cf-ray` header, and never on a deployed Worker. A unit test sets the variable with a `cf-ray` header and expects a 403, and a preview smoke check sends `Host` and `X-Forwarded-Host` set to `localhost` plus a locally signed token to the deployed preview and expects 403.
 - **AC-11**: A server action POST to `/admin` with a foreign `Origin` header is refused by Next.js even when the token is valid. The token proves who is asking, not that they meant to.
 - **AC-12**: The admin 403 page and the admin page have zero axe violations in light and dark, desktop and phone.
 - **AC-13**: On production, with the dashboard steps done: the public board stays open to everyone with no login, `/admin` shows the Access login, the admin email gets in, and any other email is denied by Access.
@@ -71,7 +71,7 @@ One function does all the checking, with the environment passed in so tests can 
 verifyAccessToken(
   token: string | null,
   config: AccessConfig,
-  keys: JWTVerifyGetKey,
+  keys: AccessKeys, // { list(): Promise<JWK[]>; refresh(): Promise<JWK[]> }, real or test double
 ): Promise<{ ok: true; email: string } | { ok: false; reason: AccessRefusal }>
 ```
 
@@ -81,18 +81,20 @@ Steps, in this order, stopping at the first failure:
 
 1. **Config.** `ACCESS_TEAM_DOMAIN` must match `^[a-z0-9-]+\.cloudflareaccess\.com$`, and `ACCESS_AUD` and `ADMIN_EMAIL` must be non empty. Otherwise `not_configured`. The domain pattern also stops a wrong value from making the Worker fetch keys from somewhere else.
 2. **Token present.** Read only the `Cf-Access-Jwt-Assertion` header. The `CF_Authorization` cookie is ignored. No header gives `no_token`.
-3. **Verify** with `jose` `jwtVerify(token, keys, { issuer: 'https://<ACCESS_TEAM_DOMAIN>', audience: ACCESS_AUD, algorithms: ['RS256'] })`. This checks the signature, issuer, audience, expiry and not before time. Any failure gives `invalid_token`. A failure to fetch the keys gives `keys_unavailable`.
+3. **Verify** with `jose` `jwtVerify(token, createLocalJWKSet({ keys }), { issuer: 'https://<ACCESS_TEAM_DOMAIN>', audience: ACCESS_AUD, algorithms: ['RS256'], clockTolerance: 30 })`. This checks the signature, issuer, audience, expiry and not before time. Any failure gives `invalid_token`. A failure to fetch the keys gives `keys_unavailable`.
 4. **Email.** The payload `email` must be a string and, trimmed and lower cased, equal `ADMIN_EMAIL` trimmed and lower cased. Otherwise `wrong_email`. A service token has no `email` claim and fails here.
 
-Keys come from `createRemoteJWKSet(new URL('https://<ACCESS_TEAM_DOMAIN>/cdn-cgi/access/certs'))`, created once per Worker instance and reused. `jose` caches the keys and refetches once when it sees an unknown key id, which covers Cloudflare's key rotation. Tests pass `createLocalJWKSet` instead.
+**Keys.** No module scope `createRemoteJWKSet`: its shared pending fetch can be awaited by a second request, and on Workers a promise created in one request cannot be awaited in another (a cross request I/O error). Instead, a small `getAccessKeys(teamDomain, { forceRefresh })` in `src/lib/access.ts` does a plain `fetch('https://<ACCESS_TEAM_DOMAIN>/cdn-cgi/access/certs', { signal: AbortSignal.timeout(5000) })` and keeps only the parsed JWK list in a module scope variable (plain data, safe to share). The key set is built per request with `createLocalJWKSet(list)`. If the token's `kid` is not in the cached list, the code refetches once and tries again. A fetch that fails, times out (5 seconds), or returns something that is not a key list gives `keys_unavailable`, and the cache is left unchanged so the next request tries again. Two concurrent requests with a cold cache may each fetch once. That is fine, and neither waits on the other's promise. Verification uses `clockTolerance: 30` (seconds). Tests pass a local key list instead of fetching.
 
-**Local and CI keys.** If `ACCESS_LOCAL_JWKS` (a public key set as JSON, in `.dev.vars` only, never a Wrangler secret or var) is set and the request URL host is `localhost` or `127.0.0.1`, the verifier uses it instead of the remote keys. Otherwise it is ignored. Playwright's global setup makes a key pair, gives the public half to the web server as `ACCESS_LOCAL_JWKS`, and signs the admin project's token with the private half. There is no switch that turns the check off.
+**Local and CI keys.** If `ACCESS_LOCAL_JWKS` (a public key set as JSON, in `.dev.vars` only, never a Wrangler secret or var) is set, `getAppEnv()` is not `production`, and the request has no `cf-ray` header, the verifier uses it instead of the remote keys. Otherwise it is ignored. The rebuilt request URL host is not used as the signal, because a request can arrive with a spoofed `Host` or `X-Forwarded-Host`. `getAppEnv()` cannot tell local from a deployed preview (both are `preview`), so the `cf-ray` header carries the weight: Cloudflare adds it to every request that reaches a deployed Worker (a client cannot remove it), and `wrangler dev` and `next dev` do not. The variable is also never set on a deployed Worker. Playwright's global setup makes a key pair, gives the public half to the web server as `ACCESS_LOCAL_JWKS`, and signs the admin project's token with the private half. There is no switch that turns the check off.
 
 ### `requireAdmin()` and the `Admin` proof
 
 `requireAdmin()` reads the header from the request (`headers()` in a page or action, the request in middleware), loads the config, calls `verifyAccessToken`, logs a refusal, and returns `Admin` or a refusal. `Admin` is a branded type (`{ readonly email: string; readonly [adminBrand]: true }`) that nothing else in the code base can build.
 
 The admin queries take it as a parameter, so the compiler enforces the check:
+
+The admin queries live in their own file, `src/db/admin-queries.ts`, not in `queries.ts`.
 
 - `listIdeasForAdmin(db, admin: Admin)`: every idea, hidden or not, newest first then `ideas.id` descending, with vote count and `hidden_at` (spec 0002, capped at 500 like the board).
 - `setIdeaHidden(db, admin: Admin, { ideaId, hidden })`: see below.
@@ -101,11 +103,11 @@ The admin queries take it as a parameter, so the compiler enforces the check:
 
 | Layer | What it does when the check fails |
 |---|---|
-| `src/middleware.ts`, for `/admin` and `/admin/*` | Returns the 403 response (AC-1) with the nonce CSP header. This also covers a server action POST, because it goes to the same path. |
+| `src/middleware.ts`, for `/admin` and `/admin/*` | Returns the 403 response (AC-1) with the nonce CSP header, so the page gets the right status code. It does not cover server actions: Next.js finds an action by its ID in the `Next-Action` request header, not by the URL path, so a POST to `/` carrying an admin action ID never touches this check. |
 | `src/app/admin/page.tsx` (and any later admin page or layout) | Renders the same "only for the site admin" content and no data. It does not assume the middleware ran, because a middleware bypass has happened in Next.js before. |
-| `src/app/admin/actions.ts` | Returns `{ ok: false, code: 'forbidden' }` before doing anything else. |
+| Every admin server action (`src/app/admin/actions.ts`, and any other `"use server"` file that uses an admin query) | Calls `requireAdmin()` first and returns `{ ok: false, code: 'forbidden' }` before doing anything else. **This per action check is the real guard for actions.** Access and the middleware only see the path. |
 
-The middleware gives the right status code. The page and action checks are what keep the data safe if the middleware is skipped (a prefetch is excluded from it by the matcher, for example). The check costs one signature verification with cached keys, so running it up to three times is fine. The middleware never hands its result to the page in a header, because that header could be forged.
+The middleware gives the right status code for pages. The page and action checks are what keep the data safe if the middleware is skipped (a prefetch is excluded from it by the matcher, for example) or never sees the request (an action POSTed to another path). The check costs one signature verification with cached keys, so running it up to three times is fine. The middleware never hands its result to the page in a header, because that header could be forged.
 
 The refusal page is one small piece of markup shared by the middleware and the page, with `<meta name="color-scheme" content="light dark">` and no scripts. Its copy is in the table at the end.
 
@@ -154,16 +156,17 @@ A thrown call cannot be told apart from a network failure, so the message names 
 | Team domain | `ACCESS_TEAM_DOMAIN` (var in `wrangler.jsonc`, both the base and `previews` blocks) |
 | Audience | `ACCESS_AUD` (production secret, preview base config secret, `.dev.vars` locally) |
 | Allowed email | `ADMIN_EMAIL` (production and preview secrets, `.dev.vars` locally) |
-| Keys | `https://<team domain>/cdn-cgi/access/certs`, or `ACCESS_LOCAL_JWKS` on localhost only |
+| Keys | `https://<team domain>/cdn-cgi/access/certs`, or `ACCESS_LOCAL_JWKS` only when `getAppEnv()` is not `production` and there is no `cf-ray` header |
 | Admin proof | Returned by `requireAdmin()`, nowhere else |
 | `now` for hide | The server clock, inside the action |
 
 ### Critical test scenarios
 
-- **Verifier table** (verifies **AC-3**, **AC-4**, **AC-7**, **AC-9**): one row per token and config case in the criteria, using a local key set. Includes a service token, an `alg: none` token, a token with the right signature and the wrong audience, mixed case email, and a key fetch that fails once and then works.
-- **Guard coverage** (verifies **AC-5**, **AC-6**): a test imports every export of `src/app/admin/actions.ts` and calls each with garbage input and no header, and expects `forbidden` (not `invalid`), with a database spy that was never touched. Type tests (`expectTypeOf`, no suppressions) assert that the admin queries take `Admin`.
+- **Verifier table** (verifies **AC-3**, **AC-4**, **AC-7**, **AC-9**): one row per token and config case in the criteria, using a local key set. Includes a service token, an `alg: none` token, a token with the right signature and the wrong audience, mixed case email, and a key fetch that fails once and then works, two concurrent requests with a cold cache (both succeed, no cross request error), and an unknown `kid` that triggers exactly one refetch (this also proves that a key rotation needs no deploy, **AC-7**).
+- **Guard coverage** (verifies **AC-5**, **AC-6**): a test globs every file that starts with `"use server"` (not only `src/app/admin/actions.ts`), imports every export of the ones that use an admin query, and calls each with garbage input and no header, and expects `forbidden` (not `invalid`), with a database spy that was never touched. Type tests (`expectTypeOf`, no suppressions) assert that the admin queries take `Admin`. Two lint rules, each with a test that proves it fires: `no-restricted-imports` so only admin code (`src/app/admin/**` and `src/lib/access.ts`) may import `src/db/admin-queries.ts`, and `no-restricted-syntax` banning a type assertion `as Admin` anywhere outside `src/lib/access.ts`, so the proof cannot be forged with a cast.
+- **Action from another path** (verifies **AC-5**): POST to `/` with the real `setHidden` action ID in the `Next-Action` header and no token, then assert `forbidden` and that nothing was written (a database read before and after).
 - **Middleware** (verifies **AC-1**, **AC-8**): no token gives 403 with the no store and noindex headers and the refusal copy; a log spy sees only `{ event, surface, reason }`.
-- **Host guard** (verifies **AC-10**): `ACCESS_LOCAL_JWKS` is honoured on `localhost` and ignored on a `workers.dev` host.
+- **Local key guard** (verifies **AC-10**): `ACCESS_LOCAL_JWKS` is honoured with no `cf-ray` header and `getAppEnv()` not `production`, and ignored with a `cf-ray` header or in production. A preview smoke check sends `Host` and `X-Forwarded-Host` set to `localhost` with a locally signed token and expects 403.
 - **Playwright**: an admin project (header set by global setup) loads `/admin`, with axe in both themes and widths; a no header project gets the 403 page and sees no idea text; a token signed by another key gets the 403; a POST with a foreign `Origin` is refused (verifies **AC-1**, **AC-2**, **AC-11**, **AC-12**).
 - **Production check** (verifies **AC-13**) is done once by hand after the dashboard steps, with screenshots in the PR.
 
@@ -178,7 +181,7 @@ Michael relays these. Nothing here needs a secret in chat: values go into Worker
 5. **Policy.** Name "Admin only", action Allow, include rule Emails with the admin email. Add no other rule (no Everyone, no email domain rule). Save the application.
 6. **Audience tag.** Open the saved application, Overview, copy the Application Audience (AUD) Tag. It goes into the Worker secret `ACCESS_AUD` (production). Set the secret `ADMIN_EMAIL` to the same email as the policy. Do not paste either value in chat or the repo.
 7. **Team domain var.** Michael or the build task puts the team domain into `ACCESS_TEAM_DOMAIN` in `wrangler.jsonc` (base and `previews`).
-8. **Previews (optional, for hide page proof).** Try a second application "Next Build admin preview" with the wildcard destination `*-next-build.jnr4u2.workers.dev` and paths `admin` and `admin/*` (same policy and session). If the dashboard does not accept the wildcard, skip it: previews then answer 403 on `/admin`, which is safe and is the default. If created, its AUD tag goes into the preview base config secret `ACCESS_AUD` and `ADMIN_EMAIL` (spec 0001), then onto each existing preview.
+8. **Previews (optional, for hide page proof).** Try a second application "Next Build admin preview" (same policy and session). First option: in the destinations, choose the Workers destination types `preview_worker` (previews of the `next-build` Worker) or `all_preview_workers`, with the paths `admin` and `admin/*`. Only if those are not offered: the hostname wildcard `*-next-build.jnr4u2.workers.dev` with the same paths. If neither is accepted, skip it: previews then answer 403 on `/admin`, which is safe and is the default. If created, its AUD tag goes into the preview base config secret `ACCESS_AUD` and `ADMIN_EMAIL` (spec 0001), then onto each existing preview.
 9. **Try it.** In a private window: the board opens with no login; `/admin` asks for the email and a code; the admin email reaches the admin page; a different email is denied.
 
 ## Build plan
@@ -186,8 +189,8 @@ Michael relays these. Nothing here needs a secret in chat: values go into Worker
 Approach: Tracer Bullet (the project default). A thin thread first (the guard in front of a bare page), then the pieces around it.
 
 1. **Verifier** (satisfies **AC-3**, **AC-4**, **AC-7**, **AC-8**): add `jose` (pin the exact current version), `src/lib/access.ts` with the config reader, `verifyAccessToken` and the cached key set, the `AccessRefusal` type, the logging rule, and the verifier table tests. Add the names to `.dev.vars.example` and the `ACCESS_TEAM_DOMAIN` var for previews.
-2. **Proof and queries** (satisfies **AC-5**, **AC-6**): `requireAdmin()` and the `Admin` brand, `listIdeasForAdmin` and `setIdeaHidden` in `src/db/queries.ts` (admin section) with local D1 tests, `setHidden` and `AdminResult` and its zod input, the guard coverage test, and an ESLint `no-restricted-imports` rule that only lets `src/app/admin/**` import the admin queries (with a test that proves the rule fires).
-3. **Middleware and refusal page** (satisfies **AC-1**, **AC-10**): the `/admin` check in `src/middleware.ts`, the shared refusal markup, `ACCESS_LOCAL_JWKS` with the host guard, `pnpm access:token`, and Playwright global setup with the admin and no header projects.
+2. **Proof and queries** (satisfies **AC-5**, **AC-6**): `requireAdmin()` and the `Admin` brand, `listIdeasForAdmin` and `setIdeaHidden` in `src/db/admin-queries.ts` with local D1 tests, `setHidden` and `AdminResult` and its zod input, the guard coverage test, the `no-restricted-imports` rule for `src/db/admin-queries.ts` and the `no-restricted-syntax` ban on `as Admin` outside `src/lib/access.ts` (each with a test that proves the rule fires).
+3. **Middleware and refusal page** (satisfies **AC-1**, **AC-10**): the `/admin` check in `src/middleware.ts`, the shared refusal markup, `ACCESS_LOCAL_JWKS` with the `cf-ray` guard, `pnpm access:token`, and Playwright global setup with the admin and no header projects.
 4. **The thin thread** (satisfies **AC-2**, **AC-9**, **AC-11**, **AC-12**, **AC-13**): `/admin` renders the heading and the idea count behind the check, `error.tsx`, the sign out message path. Deploy, then run dashboard steps 1 to 9 with Toyin and capture the production proof.
 5. **Handoff**: the PR notes that feature 8 (`/develop hide spam`) builds `AdminRow`, the table and the list on this page and calls `setHidden`.
 
