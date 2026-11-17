@@ -25,6 +25,7 @@ pnpm lint && pnpm format:check && pnpm typecheck
 pnpm test              # Vitest (src/**/*.test.ts)
 pnpm test:e2e          # Playwright + axe, desktop and mobile, runs pnpm preview
 pnpm build:worker      # opennextjs-cloudflare build (the real build gate)
+pnpm access:token      # signs a local admin token for the Cf-Access-Jwt-Assertion header (needs ACCESS_LOCAL_JWKS key, spec 0006)
 pnpm db:generate       # after editing src/db/schema.ts; commit drizzle/
 pnpm db:migrate:local    # apply migrations to the local D1
 pnpm db:migrate:remote   # production D1 (Workers Builds runs it on deploy)
@@ -34,7 +35,7 @@ pnpm db:reset:preview  # drops app tables in the shared preview DB; owner of the
 
 ## Layout
 
-`src/app` routes · `src/components` shared UI · `src/lib` env, CSP, helpers · `src/db` schema and `getDb()` · `src/middleware.ts` nonce CSP, and (from slice 1, spec 0002) the `nb_voter` cookie · `drizzle/` generated SQL (never edit by hand) · `tests/e2e` Playwright · `docs/` scope, specs, `feature-map.md` (update when a route or feature changes) · `scripts/` · `wrangler.jsonc` (has a `previews` block) · `wrangler.preview-migrations.jsonc`.
+`src/app` routes · `src/components` shared UI · `src/lib` env, CSP, helpers · `src/db` schema and `getDb()` · `src/middleware.ts` nonce CSP, the `nb_voter` cookie (spec 0002) and the `/admin` 403 gate (spec 0006, checks in `src/lib/access.ts`, every admin action calls `requireAdmin` first) · `drizzle/` generated SQL (never edit by hand) · `tests/e2e` Playwright · `docs/` scope, specs, `feature-map.md` (update when a route or feature changes) · `scripts/` · `wrangler.jsonc` (has a `previews` block) · `wrangler.preview-migrations.jsonc`.
 
 ## Rules
 
