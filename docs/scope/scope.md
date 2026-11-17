@@ -13,8 +13,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 |---|---------|-------|--------|
 | 1 | Stack & architecture | Foundation | in-progress |
 | 2 | Coding standards & tooling | Foundation | in-progress |
-| 3 | Data model | Foundation | planned |
-| 4 | Design system & UI foundation | Foundation | planned |
+| 3 | Data model | Foundation | in-progress |
+| 4 | Design system & UI foundation | Foundation | in-progress |
 | 5 | Suggest an idea and see the board | Slice 1 | in-progress |
 | 6 | Upvoting | Slice 2 | planned |
 | 7 | Admin sign in | Slice 3 | planned |

@@ -1,7 +1,7 @@
 # 0003. Design system and UI foundation for the Next Build board
 
 **Date**: 2026-11-16
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 

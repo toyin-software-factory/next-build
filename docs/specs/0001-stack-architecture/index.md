@@ -1,7 +1,7 @@
 # 0001. Next.js on Cloudflare Workers with D1 as the Next Build stack
 
 **Date**: 2026-11-16
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 
