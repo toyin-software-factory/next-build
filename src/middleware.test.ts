@@ -98,3 +98,41 @@ describe("middleware on /admin", () => {
     expect(logs).toEqual([]);
   });
 });
+
+describe("middleware voter cookie (AC-9)", () => {
+  const cookie = (response: Response) => response.headers.get("set-cookie") ?? "";
+
+  it("sets the voter cookie on a page GET, Secure on a normal host", async () => {
+    const response = await middleware(new NextRequest("https://next-build.example/"));
+    expect(cookie(response)).toMatch(/nb_voter=[0-9a-f-]{36}/);
+    expect(cookie(response)).toMatch(/secure/i);
+    expect(cookie(response)).toMatch(/httponly/i);
+  });
+
+  it("sets it on an RSC GET too", async () => {
+    const response = await middleware(
+      new NextRequest("https://next-build.example/", { headers: { RSC: "1" } }),
+    );
+    expect(cookie(response)).toMatch(/nb_voter=/);
+  });
+
+  it("is not Secure on localhost or 127.0.0.1", async () => {
+    for (const host of ["http://localhost:3000/", "http://127.0.0.1:3000/"]) {
+      const response = await middleware(new NextRequest(host));
+      expect(cookie(response)).toMatch(/nb_voter=/);
+      expect(cookie(response)).not.toMatch(/secure/i);
+    }
+  });
+
+  it("keeps a valid cookie and replaces a garbage one", async () => {
+    const valid = "11111111-1111-4111-8111-111111111111";
+    const kept = await middleware(
+      new NextRequest("https://next-build.example/", { headers: { cookie: `nb_voter=${valid}` } }),
+    );
+    expect(cookie(kept)).not.toMatch(/nb_voter=/);
+    const replaced = await middleware(
+      new NextRequest("https://next-build.example/", { headers: { cookie: "nb_voter=garbage" } }),
+    );
+    expect(cookie(replaced)).toMatch(/nb_voter=[0-9a-f-]{36}/);
+  });
+});

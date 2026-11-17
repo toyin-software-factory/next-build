@@ -1,7 +1,7 @@
 # 0002. Data model: ideas and votes in D1
 
 **Date**: 2026-11-16
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 

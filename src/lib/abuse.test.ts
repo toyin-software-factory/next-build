@@ -95,14 +95,14 @@ describe("hourly post limit (AC-2, AC-5)", () => {
 });
 
 describe("hourly vote limit (AC-3, AC-4)", () => {
-  it("allows 60 per browser, counting unvotes and repeats the same, and refuses the 61st", async () => {
-    for (let i = 0; i < 60; i++) expect((await vote(V(1), "198.51.100.4")).ok).toBe(true);
+  it("allows 20 per browser, counting unvotes and repeats the same, and refuses the 21st", async () => {
+    for (let i = 0; i < 20; i++) expect((await vote(V(1), "198.51.100.4")).ok).toBe(true);
     expect(await vote(V(1), "198.51.100.4")).toEqual({ ok: false, code: "rate_limited" });
-    expect(await count()).toBe(60);
+    expect(await count()).toBe(20);
   });
-  it("stops the address at 150 whatever the browser id", async () => {
+  it("stops the address at 20 whatever the browser id", async () => {
     const key = await ipKey("198.51.100.5", SALT);
-    const rows = Array.from({ length: 149 }, (_, i) => ({
+    const rows = Array.from({ length: 19 }, (_, i) => ({
       kind: "vote" as const,
       voterKey: V(1000 + i),
       ipKey: key,
@@ -113,7 +113,7 @@ describe("hourly vote limit (AC-3, AC-4)", () => {
     }
     expect((await vote(V(5000), "198.51.100.5")).ok).toBe(true);
     expect(await vote(V(5001), "198.51.100.5")).toEqual({ ok: false, code: "rate_limited" });
-    expect(await count()).toBe(150);
+    expect(await count()).toBe(20);
   });
 });
 
@@ -124,18 +124,20 @@ describe("one atomic statement (AC-14)", () => {
     expect(results.filter((r) => r.ok)).toHaveLength(1);
     expect(await count()).toBe(5);
   });
-  it("a capped browser writes nothing, so it cannot use up the address quota", async () => {
-    for (let i = 0; i < 60; i++) await vote(V(1), "198.51.100.7");
+  it("a capped browser writes nothing, so a refused request never adds a row", async () => {
+    for (let i = 0; i < 20; i++) await vote(V(1), "198.51.100.7");
     const before = await count();
     for (let i = 0; i < 20; i++) expect((await vote(V(1), "198.51.100.7")).ok).toBe(false);
     expect(await count()).toBe(before);
-    expect((await vote(V(2), "198.51.100.7")).ok).toBe(true);
+    // The browser and address caps are both 20 now, so the address is full too (a different address is not).
+    expect((await vote(V(2), "198.51.100.7")).ok).toBe(false);
+    expect((await vote(V(2), "198.51.100.70")).ok).toBe(true);
   });
-  it("refuses a voter at 59 when the address is at 149 only once, and writes nothing for the refused one", async () => {
-    for (let i = 0; i < 149; i++) await vote(V(10 + Math.floor(i / 59)), "198.51.100.8");
+  it("lets only one of two parallel votes take the last address slot, and writes nothing for the refused one", async () => {
+    for (let i = 0; i < 19; i++) await vote(V(10 + Math.floor(i / 10)), "198.51.100.8");
     const results = await Promise.all([vote(V(1), "198.51.100.8"), vote(V(2), "198.51.100.8")]);
     expect(results.filter((r) => r.ok)).toHaveLength(1);
-    expect(await count()).toBe(150);
+    expect(await count()).toBe(20);
   });
 });
 
@@ -155,9 +157,9 @@ describe("cleanup (AC-15)", () => {
   });
   it("writes no row for a refused request", async () => {
     const before = await count();
-    for (let i = 0; i < 60; i++) await vote(V(1), "198.51.100.10");
+    for (let i = 0; i < 20; i++) await vote(V(1), "198.51.100.10");
     await vote(V(1), "198.51.100.10");
-    expect(await count()).toBe(before + 60);
+    expect(await count()).toBe(before + 20);
   });
 });
 
@@ -269,7 +271,7 @@ describe("failing open (AC-10)", () => {
     expect((await vote(V(410), "198.51.100.18", { salt: null, limiter: { limit } })).ok).toBe(true);
     expect(limit).not.toHaveBeenCalled();
   });
-  it("without a salt a vote keeps only the browser cap of 60, whatever the address", async () => {
+  it("without a salt a vote keeps only the browser cap of 20, whatever the address", async () => {
     for (let i = 0; i < LIMITS.vote.voter; i++)
       expect((await vote(V(420), "198.51.100.19", { salt: null })).ok).toBe(true);
     expect(await vote(V(420), "198.51.100.19", { salt: null })).toEqual({
