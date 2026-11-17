@@ -11,8 +11,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
-| 1 | Stack & architecture | Foundation | in-progress |
-| 2 | Coding standards & tooling | Foundation | in-progress |
+| 1 | Stack & architecture | Foundation | done |
+| 2 | Coding standards & tooling | Foundation | done |
 | 3 | Data model | Foundation | in-progress |
 | 4 | Design system & UI foundation | Foundation | in-progress |
 | 5 | Suggest an idea and see the board | Slice 1 | in-progress |
@@ -32,8 +32,8 @@ Pick the framework, storage and hosting setup on Cloudflare Workers (matching th
   - [x] App skeleton, scripts and `wrangler.jsonc` (with Worker Previews) per the spec
   - [x] CI: lint, typecheck, test, build and the bundle size gate
   - [x] Deploy `main` to `workers.dev` and a preview link per PR
-- [ ] Verify it: `/check verify stack & architecture`
-- [ ] Test it: `/test stack & architecture`
+- [x] Verify it: `/check verify stack & architecture`
+- [x] Test it: `/test stack & architecture`
 
 spec [0001](../specs/0001-stack-architecture/index.md)
 
@@ -42,8 +42,8 @@ Capture the conventions from the real scaffold into root `AGENTS.md`, then insta
 **Done when:** root `AGENTS.md` reflects the real stack, and lint, format and typecheck run clean in CI.
 - [x] Capture conventions + tooling choices: `/audit`
 - [x] Install the tooling: `/develop tooling` (already in the scaffold: ESLint, Prettier, typecheck, pre commit hook, CI)
-- [ ] Verify it: `/check verify tooling`
-- [ ] Test it: `/test tooling`
+- [x] Verify it: `/check verify tooling`
+- [x] Test it: `/test tooling`
 
 ### 3. Data model
 Ideas (text, created time, hidden flag, vote count) and votes (one per idea per browser), shaped so sorting by votes stays fast and counts stay correct.
