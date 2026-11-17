@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { Linter } from "eslint";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 import type { JWK } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -271,5 +272,63 @@ describe("local keys guard", () => {
   it("is ignored when malformed", () => {
     vi.stubEnv("APP_ENV", "preview");
     expect(readLocalKeys(new Headers(), { ACCESS_LOCAL_JWKS: "{nope" })).toBeNull();
+  });
+});
+
+describe("Admin ESLint bans (spec 0006)", () => {
+  /** Runs only the repo's two Admin rules on a virtual file at `filename`. */
+  async function lint(filename: string, code: string): Promise<string[]> {
+    const configPath = "../../eslint.config.mjs";
+    const repoConfig = (
+      (await import(/* @vite-ignore */ configPath)) as { default: Linter.Config[] }
+    ).default;
+    const { default: tseslint } = await import("typescript-eslint");
+    const adminEntries = repoConfig.filter(
+      (entry) =>
+        entry.rules !== undefined &&
+        Object.keys(entry.rules).some((rule) =>
+          ["no-restricted-imports", "no-restricted-syntax"].includes(rule),
+        ),
+    );
+    const messages = new Linter({ configType: "flat" }).verify(
+      code,
+      [
+        {
+          files: ["**/*.ts", "**/*.tsx"],
+          languageOptions: { parser: tseslint.parser },
+        },
+        ...adminEntries,
+      ],
+      { filename },
+    );
+    return messages.map((m) => m.ruleId ?? `fatal: ${m.message}`);
+  }
+
+  const importQueries =
+    'import { listIdeasForAdmin } from "@/db/admin-queries";\nvoid listIdeasForAdmin;\n';
+
+  it("bans importing the admin queries from ordinary code", async () => {
+    expect(await lint("src/app/actions.ts", importQueries)).toContain("no-restricted-imports");
+    expect(await lint("src/components/Foo.tsx", importQueries)).toContain("no-restricted-imports");
+    expect(await lint("src/db/queries.ts", 'import "./admin-queries";\n')).toContain(
+      "no-restricted-imports",
+    );
+  });
+
+  it("allows the admin route and the access module to import them", async () => {
+    expect(await lint("src/app/admin/actions.ts", importQueries)).toEqual([]);
+    expect(await lint("src/app/admin/page.tsx", importQueries)).toEqual([]);
+    expect(await lint("src/lib/access.ts", importQueries)).toEqual([]);
+  });
+
+  it("bans building an Admin with a cast outside the access module", async () => {
+    const asCast =
+      'import type { Admin } from "@/lib/access";\nexport const a = { email: "x" } as Admin;\n';
+    const angle =
+      'import type { Admin } from "@/lib/access";\nexport const a = <Admin>{ email: "x" };\n';
+    expect(await lint("src/app/admin/actions.ts", asCast)).toContain("no-restricted-syntax");
+    expect(await lint("src/components/Foo.tsx", asCast)).toContain("no-restricted-syntax");
+    expect(await lint("src/app/admin/actions.ts", angle)).toContain("no-restricted-syntax");
+    expect(await lint("src/lib/access.ts", asCast)).toEqual([]);
   });
 });

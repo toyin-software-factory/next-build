@@ -1,5 +1,6 @@
 import { createLocalJWKSet, decodeProtectedHeader, jwtVerify } from "jose";
 import type { JSONWebKeySet, JWK } from "jose";
+import { headers as requestHeaders } from "next/headers";
 import { z } from "zod";
 
 import { getAppEnv } from "./env";
@@ -177,4 +178,22 @@ export async function checkAccess(
 /** One structured line per refusal: the surface and reason only, never a token, email, IP or audience. */
 export function logRefusal(surface: "middleware" | "page" | "action", reason: AccessRefusal): void {
   console.log(JSON.stringify({ event: "admin_refused", surface, reason }));
+}
+
+declare const adminBrand: unique symbol;
+
+/**
+ * Proof that this request came from the admin. Only requireAdmin() makes one (the one `as Admin`
+ * in the codebase, enforced by ESLint), and every admin query takes it as a parameter.
+ */
+export type Admin = { readonly email: string; readonly [adminBrand]: true };
+
+/** Checks the current request and returns the Admin proof, or null (and logs why, by surface). */
+export async function requireAdmin(surface: "page" | "action"): Promise<Admin | null> {
+  const result = await checkAccess(await requestHeaders());
+  if (!result.ok) {
+    logRefusal(surface, result.reason);
+    return null;
+  }
+  return { email: result.email } as Admin;
 }
