@@ -48,3 +48,14 @@ All built: `rate_events` and its migration (`0001_bitter_tusk.sql`), `checkPost`
 ## Files ticked
 
 Scope: feature 9 status `in-progress`, the first four Build milestones and `Verify it` ticked. The dashboard milestone, `Build it` and `Test it` stay open. Spec 0007 status is `In Progress`.
+
+## Production check (2026-11-17, Michael, AC-16)
+
+Run on `https://next-build.jnr4u2.workers.dev` after Toyin finished the spec 0007 dashboard steps (Turnstile keys, `ABUSE_SALT`, `NEXT_PUBLIC_SITE_URL`) and the next deploy rebuilt the site.
+
+- The page carries the real Turnstile site key (`0x4…`, not a test key) and loads `challenges.cloudflare.com/turnstile/v0/api.js`. The CSP allows it in `script-src` and `frame-src`.
+- Toyin, in a normal browser: a normal post appeared on the board. A quick run of posts was stopped with the limit message. The test ideas were then hidden from `/admin` and left the public board (which also checks feature 8 on production). Toyin reported "All works" with no errors.
+- A post with no token is refused: covered by the e2e and unit tests in the test report. It was not repeated by hand on production.
+- Toyin noticed that an incognito window can vote again. This is expected: votes are one per browser by design (anonymous, no sign up), and the per address hourly cap limits it. Toyin was asked whether to tighten it (thread 1794920460.404369).
+
+Result: PASS.
