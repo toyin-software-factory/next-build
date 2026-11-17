@@ -70,7 +70,7 @@ Export the inferred types (`Idea`, `NewIdea`, `Vote`) from the schema file, and 
 All live in `src/db/queries.ts`, server only, each with a test against a local D1.
 
 - **Board**: visible ideas with their vote count and whether this voter voted:
-  `select ideas.id, ideas.text, ideas.created_at, count(votes.voter_id) as votes, coalesce(max(votes.voter_id = :voter), 0) as voted from ideas left join votes on votes.idea_id = ideas.id where ideas.hidden_at is null group by ideas.id order by votes desc, ideas.created_at desc limit 500`.
+  `select ideas.id, ideas.text, ideas.created_at, count(votes.voter_id) as votes, coalesce(max(votes.voter_id = :voter), 0) as voted from ideas left join votes on votes.idea_id = ideas.id where ideas.hidden_at is null group by ideas.id order by votes desc, ideas.created_at desc, ideas.id desc limit 500` (`ideas.id` last makes ties in the same millisecond deterministic, matching spec 0004).
   The 500 cap keeps the page bounded; paging is out of scope until the board grows that big.
 - **Post**: insert one idea. Returns the new row.
 - **Set vote**: the button sends the state the person wants (`on` or `off`, from what they see), not a blind "toggle", so every request is idempotent and a double tap or a retry can't flip it back. First check that the idea exists and is visible (else reject). `on`: `insert into votes ... on conflict do nothing`. `off`: delete the (idea, voter) row. Each is one atomic statement, and the primary key makes a second vote impossible. Return the new count and whether this voter now has a vote. Return the new count and whether the voter now has a vote.
