@@ -10,7 +10,7 @@ export function IdeaRow({
   idea: Pick<BoardRow, "id" | "text" | "createdAt" | "votes" | "voted">;
 }) {
   return (
-    <li className="flex items-center gap-4 border-b border-border py-4 last:border-b-0">
+    <li className="flex flex-wrap items-center gap-4 border-b border-border py-4 last:border-b-0">
       <div className="min-w-0 flex-1">
         <p id={`idea-${idea.id}-text`} className="idea-text">
           {idea.text}
