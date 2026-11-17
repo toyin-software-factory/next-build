@@ -1,7 +1,7 @@
 # 0005. Slice 2: upvoting
 
 **Date**: 2026-11-17
-**Status**: Proposed
+**Status**: In Progress
 **Feature**: scope feature 6, "Upvoting" (Slice 2)
 
 ## Summary
