@@ -52,5 +52,13 @@ Every text pair is at least 4.5:1 and every control outline and the focus ring a
 4. Productboard, ideas portal: https://mobbin.com/screens/94a52465-42c5-4e90-8a33-29674d26b173
 5. Canny, empty board: https://mobbin.com/screens/7becac2a-231f-4f41-af27-a60ee3dcadd5
 6. Basecamp, empty state: https://mobbin.com/screens/81058ba9-1633-4234-a12a-1c87c41bdb53
+7. Digg, give feedback form (idea form, slice 1): https://mobbin.com/screens/0270f6df-cdad-4d2e-ba37-dc90c5195df4
+8. Zapier, feature request form (label, hint, counter place): https://mobbin.com/screens/643c68df-d195-4803-89b8-19757e1da35d
+9. Peerlist, project spotlight (row with vote chip): https://mobbin.com/screens/7345ce03-b10b-41f5-87fb-ae4b0a766874
+10. Featurebase, feedback posts list (dense rows): https://mobbin.com/screens/16cc75ad-3a5b-4895-9eef-220892a1f41f
+11. Productboard, collect feedback at scale (empty state): https://mobbin.com/screens/209665bb-42c4-4730-89a5-75dd0d3d2a0f
+12. Hotjar, no feedback available (empty state): https://mobbin.com/screens/29d2e8c4-9d66-4d76-8d7e-2ed66ab3f0f1
+13. Notion, something went wrong (board load error): https://mobbin.com/screens/e00ca642-dcfd-4797-aec7-9ae0d780ec3d
+14. Revolut Business, connection issue (icon with text error): https://mobbin.com/screens/b719158e-0a19-4b2e-8cc0-5217648ea20a
 
-What each one informed is in [rationale.md](../specs/0003-design-system/rationale.md).
+Items 1 to 6 are explained in [rationale.md](../specs/0003-design-system/rationale.md). Items 7 to 14 were used for the slice 1 screens, and what to take from each is in [slice-1-references.md](slice-1-references.md).
