@@ -1,8 +1,24 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { E2E_ACCESS, e2ePublicKeySet, signE2eToken } from "./tests/e2e/access-keys";
+
 const PORT = 8787;
 const baseURL = `http://localhost:${String(PORT)}`;
 const isCI = Boolean(process.env.CI);
+
+// The Worker trusts a throwaway key (ACCESS_LOCAL_JWKS works only outside production and with no
+// cf-ray header, spec 0006). Single quotes keep the JSON in one shell argument.
+const accessVars = [
+  `ACCESS_TEAM_DOMAIN:${E2E_ACCESS.teamDomain}`,
+  `ACCESS_AUD:${E2E_ACCESS.audience}`,
+  `ADMIN_EMAIL:${E2E_ACCESS.adminEmail}`,
+  `ACCESS_LOCAL_JWKS:${e2ePublicKeySet()}`,
+]
+  .map((pair) => `--var '${pair}'`)
+  .join(" ");
+
+const adminToken = await signE2eToken();
+const SIGNED_IN = /admin\.signed-in\.spec\.ts/;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -16,13 +32,37 @@ export default defineConfig({
   projects: [
     {
       name: "desktop",
+      testIgnore: SIGNED_IN,
       use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
     },
-    { name: "mobile", use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } } },
+    {
+      name: "mobile",
+      testIgnore: SIGNED_IN,
+      use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } },
+    },
+    // The admin projects send a locally signed Access token with every request.
+    {
+      name: "admin-desktop",
+      testMatch: SIGNED_IN,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+        extraHTTPHeaders: { "Cf-Access-Jwt-Assertion": adminToken },
+      },
+    },
+    {
+      name: "admin-mobile",
+      testMatch: SIGNED_IN,
+      use: {
+        ...devices["Pixel 7"],
+        viewport: { width: 390, height: 844 },
+        extraHTTPHeaders: { "Cf-Access-Jwt-Assertion": adminToken },
+      },
+    },
   ],
   // The real Workers runtime (OpenNext build + wrangler) with a local D1, not `next dev`.
   webServer: {
-    command: `pnpm preview --port ${String(PORT)}`,
+    command: `pnpm preview --port ${String(PORT)} ${accessVars}`,
     url: baseURL,
     reuseExistingServer: !isCI,
     timeout: 300_000,
