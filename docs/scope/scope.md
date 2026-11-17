@@ -135,7 +135,7 @@ Keep counts honest and the board clean without sign up: per visitor limits on po
   - [x] Turnstile widget in the post form
   - [ ] Dashboard steps with Toyin and the production check
 - [x] Verify it: `/check verify abuse protection`
-- [ ] Test it: `/test abuse protection`
+- [x] Test it: `/test abuse protection`
 
 spec [0007](../specs/0007-abuse-protection.md) · code in `src/lib/abuse.ts`, `src/lib/turnstile.ts`, `src/db/abuse-queries.ts`, `src/components/TurnstileWidget.tsx`
 
