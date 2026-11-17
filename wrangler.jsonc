@@ -29,12 +29,8 @@
       "simple": { "limit": 60, "period": 60 },
     },
   ],
-  // Plain vars only. Secrets (ACCESS_AUD, ADMIN_EMAIL, TURNSTILE_SECRET_KEY) are set in
-  // Cloudflare and, locally, in .dev.vars.
-  "vars": {
-    // TODO(FSD-T01): placeholder. Replace with `<team>.cloudflareaccess.com` at admin sign in time (feature 7).
-    "ACCESS_TEAM_DOMAIN": "",
-  },
+  // No plain vars. ACCESS_TEAM_DOMAIN, ACCESS_AUD, ADMIN_EMAIL and TURNSTILE_SECRET_KEY are set in
+  // Cloudflare (dashboard secrets) and, locally, in .dev.vars. A placeholder here would collide.
   // Worker Previews (`wrangler preview`) do not inherit the settings above, so everything
   // a preview needs is declared here. Previews bind DB to next-build-preview, never production.
   "previews": {
@@ -47,9 +43,6 @@
         "migrations_dir": "drizzle",
       },
     ],
-    "vars": {
-      "ACCESS_TEAM_DOMAIN": "",
-    },
     "ratelimits": [
       {
         "name": "POST_RATE_LIMITER",
