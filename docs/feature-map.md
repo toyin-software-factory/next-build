@@ -11,7 +11,7 @@ Every page and user facing feature, by the name used in `docs/scope/scope.md`, w
 | Design system & UI foundation (4) | n/a (no page) | Everyone | n/a | `docs/design/design.md`, `src/components/`, `src/app/globals.css` | built (tokens, form, list, empty and error states; vote button and admin row planned) |
 | Suggest an idea and see the board (5) | `/` (the board and the idea form; failures show `error.tsx`) | Anyone | Open the site, type an idea, press Enter or Add idea | `src/app/page.tsx`, `src/app/actions.ts`, `src/app/error.tsx`, `src/components/` | built |
 | Upvoting (6) | `/` (vote button on each idea) | Anyone, one vote per idea per browser | Tap the vote button | `src/app/`, `src/components/`, `src/db/` | planned |
-| Admin sign in (7) | `/admin` and every admin action | Toyin's email only | Cloudflare Access login, then `/admin` | `src/lib/access.ts`, `src/app/admin/` | planned |
+| Admin sign in (7) | `/admin` and every admin action | Toyin's email only | Cloudflare Access login, then `/admin` | `src/lib/access.ts`, `src/lib/admin-refusal.ts`, `src/db/admin-queries.ts`, `src/middleware.ts`, `src/app/admin/` | built (verifier, 403 in middleware, `requireAdmin`, `setHidden` action, thin page; production Access setup pending) |
 | Hide spam (8) | `/admin` | Toyin's email only | Sign in, then Hide or Unhide on an idea | `src/app/admin/`, `src/db/` | planned |
 | Abuse protection (9) | `/` (posting and voting) | Anyone | n/a (invisible check, friendly refusal) | `src/lib/turnstile.ts`, `src/lib/rate-limit.ts` | planned |
 | SEO and share card (10) | `/` (metadata, share image) | Anyone | Share a link | `src/app/layout.tsx`, `src/app/opengraph-image.tsx` | planned |
