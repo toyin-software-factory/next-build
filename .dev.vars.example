@@ -1,0 +1,11 @@
+# Copy to .dev.vars for `pnpm preview` and `next dev` bindings. .dev.vars is git ignored.
+# Pick the .env file OpenNext loads (development | production).
+NEXTJS_ENV=development
+# Local and CI run as a preview: Turnstile test keys, no real secrets.
+APP_ENV=preview
+# Access application audience tag. Unset means /admin returns 403 (fails closed).
+ACCESS_AUD=
+# The one email allowed into /admin. Unset means /admin returns 403.
+ADMIN_EMAIL=
+# Cloudflare's published Turnstile test secret (always passes). The real one is a Worker secret, production only.
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
