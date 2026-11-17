@@ -284,6 +284,12 @@ Every user facing string lives in one file, `src/lib/copy.ts`, so wording change
 | Admin refusal (403 page and page content) | This page is only for the site admin. |
 | Admin sign in ended | Your admin sign in has ended. Reload this page to sign in again. |
 | Reload button | Reload |
+| Admin back link | Back to the board |
+| Admin list label | Ideas, admin view |
+| Admin list capped | Showing the newest N ideas. |
+| Admin button names | Hide idea, Unhide idea (visible labels Hide, Unhide) |
+| Admin table headers | Idea, Votes, Added, Status, Action |
+| Admin status | Visible, Hidden |
 
 ### Focus and keyboard behaviour
 

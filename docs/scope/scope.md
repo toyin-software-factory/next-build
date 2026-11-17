@@ -18,7 +18,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 5 | Suggest an idea and see the board | Slice 1 | in-progress |
 | 6 | Upvoting | Slice 2 | done |
 | 7 | Admin sign in | Slice 3 | in-progress |
-| 8 | Hide spam | Slice 3 | planned |
+| 8 | Hide spam | Slice 3 | in-progress |
 | 9 | Abuse protection | Slice 4 | in-progress |
 | 10 | SEO and share card | Slice 4 | in-progress |
 
@@ -49,7 +49,7 @@ Capture the conventions from the real scaffold into root `AGENTS.md`, then insta
 Ideas (text, created time, hidden flag, vote count) and votes (one per idea per browser), shaped so sorting by votes stays fast and counts stay correct.
 **Done when:** the model supports posting, voting, unvoting, hiding and sorting by votes without a breaking change later.
 - [x] Design it (spec): `/architect data model`
-- [ ] Build it inside the slices (see the spec's build plan). Progress is ticked on the slice features, not here: tables and board queries in feature 5, the set vote query in feature 6, admin list and hide in feature 8. Tick this box when those three are built.
+- [x] Build it inside the slices (see the spec's build plan). Progress is ticked on the slice features, not here: tables and board queries in feature 5, the set vote query in feature 6, admin list and hide in feature 8. Tick this box when those three are built.
 - [ ] Verify it: `/check verify data model`
 - [ ] Test it: `/test data model`
 
@@ -59,7 +59,7 @@ spec [0002](../specs/0002-data-model.md)
 A small, clean visual language for one page: type, color, spacing, the idea row, the vote button, the input. Backed by Mobbin references.
 **Done when:** `design.md` covers tokens and the few components, with light and dark, keyboard focus and WCAG AA contrast.
 - [x] Design it (spec): `/architect design system & UI foundation`
-- [ ] Build it inside the slices (see the spec's build plan). Progress is ticked on the slice features, not here: tokens, theme and board components in feature 5, the vote button in feature 6, the admin row and table in feature 8. Tick this box when those three are built.
+- [x] Build it inside the slices (see the spec's build plan). Progress is ticked on the slice features, not here: tokens, theme and board components in feature 5, the vote button in feature 6, the admin row and table in feature 8. Tick this box when those three are built.
 - [ ] Verify it: `/check verify design system & UI foundation`
 - [ ] Test it: `/test design system & UI foundation`
 
@@ -113,13 +113,13 @@ A private admin area only Toyin can reach.
 
 spec [0006](../specs/0006-admin-sign-in.md)
 
-### 8. Hide spam
+### 8. Hide spam · in-progress
 An admin page listing every idea, visible and hidden, with Hide and Unhide.
 **Done when:** Toyin can hide or unhide any idea in one click; hidden ideas disappear from the public list and can't be voted on.
-- [ ] Build it: `/develop hide spam`
-  - [ ] Admin list of every idea, visible and hidden (admin row and table)
-  - [ ] Hide and Unhide through `setHidden`, hidden ideas gone from the board and not votable
-- [ ] Verify it: `/check verify hide spam`
+- [x] Build it: `/develop hide spam`
+  - [x] Admin list of every idea, visible and hidden (admin row and table)
+  - [x] Hide and Unhide through `setHidden`, hidden ideas gone from the board and not votable
+- [x] Verify it: `/check verify hide spam`
 - [ ] Test it: `/test hide spam`
 
 ## Slice 4: Hardening and polish
