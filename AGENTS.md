@@ -35,14 +35,14 @@ pnpm db:reset:preview  # drops app tables in the shared preview DB; owner of the
 
 ## Layout
 
-`src/app` routes · `src/components` shared UI · `src/lib` env, CSP, helpers · `src/db` schema and `getDb()` · `src/middleware.ts` nonce CSP, the `nb_voter` cookie (spec 0002) and the `/admin` 403 gate (spec 0006, checks in `src/lib/access.ts`, every admin action calls `requireAdmin` first) · `drizzle/` generated SQL (never edit by hand) · `tests/e2e` Playwright · `docs/` scope, specs, `feature-map.md` (update when a route or feature changes) · `scripts/` · `wrangler.jsonc` (has a `previews` block) · `wrangler.preview-migrations.jsonc`.
+`src/app` routes · `src/components` shared UI · `src/lib` env, CSP, helpers · `src/db` schema and `getDb()` · `src/middleware.ts` nonce CSP, the `nb_voter` cookie (spec 0002) and the `/admin` 403 gate (spec 0006, checks in `src/lib/access.ts`, every admin action calls `requireAdmin` first) · `drizzle/` generated SQL (never edit by hand) · `tests/e2e` Playwright · `tests/lint` ESLint rule tests (run by Vitest) · `docs/` scope, specs, `feature-map.md` (update when a route or feature changes) · `scripts/` · `wrangler.jsonc` (has a `previews` block) · `wrangler.preview-migrations.jsonc`.
 
 ## Rules
 
 - TypeScript strict: no `any`, no `@ts-ignore`, exhaustive unions. Named exports, except where Next requires a default (pages, layouts, route files).
 - zod validates every input: server actions, route handlers, form data and env. Parse at the edge, then pass typed values inward. Read env only through `getAppEnv()` in `src/lib/env.ts`.
 - Small focused components. One job each, props typed, server components by default, `"use client"` only where needed.
-- Accessibility to WCAG AA: semantic HTML, visible keyboard focus, contrast, labels. axe runs on every page in e2e. Design tokens: `docs/specs/0003-design-system/index.md`. Design system: build all UI to `docs/design/design.md`; token values live in `src/app/globals.css`.
+- Accessibility to WCAG AA: semantic HTML, visible keyboard focus, contrast, labels. axe runs on every page in e2e. Design tokens: `docs/specs/0003-design-system/index.md`. Design system: build all UI to `docs/design/design.md`; token values live in `src/app/globals.css`. No raw hex, rgb(), hsl() or oklch() colours, and no arbitrary colour classes like `bg-[#fff]`, in `src/components` or `src/app` (ESLint enforces it, test in `tests/lint/`).
 - Functional style: pure functions, immutable data, side effects at the edges, explicit error returns for expected failures.
 - Database: only `src/db/client.ts` touches D1, server only (`import "server-only"`). Pages that read D1 are `force-dynamic`.
 - D1 schema: one open schema PR at a time (the lead sequences them). Migrations only add (new tables, new nullable columns) until launch. Run `pnpm db:generate` and commit `drizzle/`; CI fails on drift.
