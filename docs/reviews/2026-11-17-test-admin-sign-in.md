@@ -47,7 +47,7 @@ Limits, stated plainly:
 ## Not covered
 
 - AC-13 (the production check) belongs to Michael (C-6).
-- One Vitest run out of five failed a single test in the full suite and passed in the next three runs, with no code change. I could not catch which test, so it is noted here and not hidden.
+- A flaky existing test: `src/components/VoteButton.test.tsx` "pressing the vote button on an error row clears the error and sends the new opposite" fails about 1 full run in 4 (it sees `want: off` instead of `on`) and passes on rerun. It is feature 6 code, not changed here.
 
 ## Commands
 
