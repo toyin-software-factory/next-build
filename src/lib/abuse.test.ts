@@ -263,6 +263,29 @@ describe("failing open (AC-10)", () => {
     const keys = (await db.select().from(rateEvents)).map((r) => r.ipKey);
     expect(keys).not.toContain("none");
   });
+  it("without a salt skips the burst limiter for posts and votes (AC-10)", async () => {
+    const limit = vi.fn(() => Promise.resolve({ success: false }));
+    expect((await post(V(410), "198.51.100.18", { salt: null, limiter: { limit } })).ok).toBe(true);
+    expect((await vote(V(410), "198.51.100.18", { salt: null, limiter: { limit } })).ok).toBe(true);
+    expect(limit).not.toHaveBeenCalled();
+  });
+  it("without a salt a vote keeps only the browser cap of 60, whatever the address", async () => {
+    for (let i = 0; i < LIMITS.vote.voter; i++)
+      expect((await vote(V(420), "198.51.100.19", { salt: null })).ok).toBe(true);
+    expect(await vote(V(420), "198.51.100.19", { salt: null })).toEqual({
+      ok: false,
+      code: "rate_limited",
+    });
+    // Another browser on the same address is not held back by the first one.
+    expect((await vote(V(421), "198.51.100.19", { salt: null })).ok).toBe(true);
+    const keys = (await db.select().from(rateEvents)).map((r) => r.ipKey);
+    expect(new Set(keys)).toEqual(new Set(["unsalted"]));
+  });
+  it("never asks Cloudflare for a bot check on a vote (AC-9)", async () => {
+    const fetcher = vi.fn(okFetch);
+    expect((await vote(V(430), "198.51.100.20", { fetch: fetcher })).ok).toBe(true);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
   it("still runs the bot check when the counters fail", async () => {
     const reject = () =>
       Promise.resolve(new Response(JSON.stringify({ success: false }), { status: 200 }));
