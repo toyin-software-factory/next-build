@@ -16,8 +16,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 3 | Data model | Foundation | in-progress |
 | 4 | Design system & UI foundation | Foundation | in-progress |
 | 5 | Suggest an idea and see the board | Slice 1 | in-progress |
-| 6 | Upvoting | Slice 2 | in-progress |
-| 7 | Admin sign in | Slice 3 | planned |
+| 6 | Upvoting | Slice 2 | done |
+| 7 | Admin sign in | Slice 3 | in-progress |
 | 8 | Hide spam | Slice 3 | planned |
 | 9 | Abuse protection | Slice 4 | in-progress |
 | 10 | SEO and share card | Slice 4 | planned |
@@ -83,7 +83,7 @@ spec [0004](../specs/0004-suggest-idea-board.md) · code in `src/app/page.tsx`, 
 
 ## Slice 2: Upvoting
 
-### 6. Upvoting · in-progress
+### 6. Upvoting · done
 A vote button on each idea. One vote per idea per browser, tapping again removes it, and the list is sorted by votes.
 **Done when:** a browser can vote once per idea, a second tap removes the vote, the count updates right away, the same browser can't double count by repeated requests, and the list is ordered by votes (newest first on ties).
 - [x] Design it (spec): `/architect upvoting`
@@ -99,14 +99,14 @@ spec [0005](../specs/0005-upvoting.md) · code in `src/components/VoteButton.tsx
 
 ## Slice 3: Moderation
 
-### 7. Admin sign in
+### 7. Admin sign in · in-progress
 A private admin area only Toyin can reach.
 **Done when:** `/admin` and every admin action are refused for anyone but Toyin, checked on the server.
 - [x] Design it (spec): `/architect admin sign in`
 - [ ] Build it: `/develop admin sign in`
-  - [ ] Token verifier and key cache (`src/lib/access.ts`)
-  - [ ] `requireAdmin()` proof, admin queries and the `setHidden` action
-  - [ ] Middleware check and refusal page, local test token
+  - [x] Token verifier and key cache (`src/lib/access.ts`)
+  - [x] `requireAdmin()` proof, admin queries and the `setHidden` action
+  - [x] Middleware check and refusal page, local test token
   - [ ] Thin `/admin` page behind the check, deploy, dashboard steps with Toyin
 - [ ] Verify it: `/check verify admin sign in`
 - [ ] Test it: `/test admin sign in`
