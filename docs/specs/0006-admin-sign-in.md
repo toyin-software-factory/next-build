@@ -32,9 +32,9 @@ The Access application is a self hosted application on the `workers.dev` host wi
 - **AC-8**: Logs for a refusal hold only `{ event: 'admin_refused', surface, reason }`. Never the token, the email, the IP or the audience.
 - **AC-9**: A token made for the production Access application is refused on a preview, and the other way round, because the audience differs. Checked by a unit test (two configs with different audiences), not in a browser, because a preview Access application may not exist.
 - **AC-10**: Local runs and CI reach `/admin` with a token signed by a throwaway test key. The test key is trusted only when `getAppEnv()` is not `production` and the request has no `cf-ray` header, and never on a deployed Worker. A unit test sets the variable with a `cf-ray` header and expects a 403, and a preview smoke check sends `Host` and `X-Forwarded-Host` set to `localhost` plus a locally signed token to the deployed preview and expects 403.
-- **AC-11**: A server action POST to `/admin` with a foreign `Origin` header is refused by Next.js even when the token is valid. The token proves who is asking, not that they meant to.
+- **AC-11**: A server action POST to `/admin` with a foreign `Origin` header is refused by Next.js even when the token is valid. The Playwright test sends a valid locally signed `Cf-Access-Jwt-Assertion` header on the foreign `Origin` POST, so it fails on the Origin check and not on authentication. The token proves who is asking, not that they meant to.
 - **AC-12**: The admin 403 page and the admin page have zero axe violations in light and dark, desktop and phone.
-- **AC-13**: On production, with the dashboard steps done: the public board stays open to everyone with no login, `/admin` shows the Access login, the admin email gets in, and any other email is denied by Access.
+- **AC-13**: On production, with the dashboard steps done: the public board stays open to everyone with no login, `/admin` shows the Access login, the admin email gets in, and any other email is denied by Access. With no login, each of these four URLs gets the Access login or a 403, and the body never contains idea text: `/admin/`, `/%61dmin`, `/admin?_rsc=x`, and `/admin` with the request header `RSC: 1`.
 
 ## Decision
 
@@ -81,8 +81,8 @@ Steps, in this order, stopping at the first failure:
 
 1. **Config.** `ACCESS_TEAM_DOMAIN` must match `^[a-z0-9-]+\.cloudflareaccess\.com$`, and `ACCESS_AUD` and `ADMIN_EMAIL` must be non empty. Otherwise `not_configured`. The domain pattern also stops a wrong value from making the Worker fetch keys from somewhere else.
 2. **Token present.** Read only the `Cf-Access-Jwt-Assertion` header. The `CF_Authorization` cookie is ignored. No header gives `no_token`.
-3. **Verify** with `jose` `jwtVerify(token, createLocalJWKSet({ keys }), { issuer: 'https://<ACCESS_TEAM_DOMAIN>', audience: ACCESS_AUD, algorithms: ['RS256'], clockTolerance: 30 })`. This checks the signature, issuer, audience, expiry and not before time. Any failure gives `invalid_token`. A failure to fetch the keys gives `keys_unavailable`.
-4. **Email.** The payload `email` must be a string and, trimmed and lower cased, equal `ADMIN_EMAIL` trimmed and lower cased. Otherwise `wrong_email`. A service token has no `email` claim and fails here.
+3. **Verify** with `jose` `jwtVerify(token, createLocalJWKSet({ keys }), { issuer: 'https://<ACCESS_TEAM_DOMAIN>', audience: ACCESS_AUD, algorithms: ['RS256'], clockTolerance: 30 })`. This checks the signature, issuer, audience, expiry and not before time. Access puts `aud` in the token as an array, and `jose` accepts a string `audience` option against an array claim, so `ACCESS_AUD` is passed as a plain string. If the payload has a `type` claim, it must be `"app"` (optional check, a user token); a missing `type` is not refused, because the email check already rejects service tokens. Any failure gives `invalid_token`. A failure to fetch the keys gives `keys_unavailable`.
+4. **Email.** The payload `email` must be a string and, trimmed and lower cased, equal `ADMIN_EMAIL` trimmed and lower cased. An email containing a control character (code point below 0x20 or 0x7f) is refused. Otherwise `wrong_email`. A service token has no `email` claim and fails here.
 
 **Keys.** No module scope `createRemoteJWKSet`: its shared pending fetch can be awaited by a second request, and on Workers a promise created in one request cannot be awaited in another (a cross request I/O error). Instead, a small `getAccessKeys(teamDomain, { forceRefresh })` in `src/lib/access.ts` does a plain `fetch('https://<ACCESS_TEAM_DOMAIN>/cdn-cgi/access/certs', { signal: AbortSignal.timeout(5000) })` and keeps only the parsed JWK list in a module scope variable (plain data, safe to share). The key set is built per request with `createLocalJWKSet(list)`. If the token's `kid` is not in the cached list, the code refetches once and tries again. A fetch that fails, times out (5 seconds), or returns something that is not a key list gives `keys_unavailable`, and the cache is left unchanged so the next request tries again. Two concurrent requests with a cold cache may each fetch once. That is fine, and neither waits on the other's promise. Verification uses `clockTolerance: 30` (seconds). Tests pass a local key list instead of fetching.
 
@@ -133,7 +133,7 @@ A thrown call cannot be told apart from a network failure, so the message names 
 
 ### Preview and local behaviour
 
-- **Production**: the Worker secrets `ACCESS_AUD` and `ADMIN_EMAIL`, the var `ACCESS_TEAM_DOMAIN`.
+- **Production**: the Worker secrets `ACCESS_AUD` and `ADMIN_EMAIL`, and `ACCESS_TEAM_DOMAIN`, all set as dashboard secrets.
 - **Deployed previews**: the same check, with the preview application's audience from the preview base config (spec 0001). If no Access application covers a preview, `/admin` there is a 403 for everyone. That is the intended safe result, not a bug. Proof of the hide page on a preview needs the preview Access application (dashboard step 8); without it, feature 8 proves the page with the local end to end run and the unit tests.
 - **Local and CI**: no Access in front. Tests use `ACCESS_LOCAL_JWKS` and a signed test token (AC-10). A developer who wants to open `/admin` in a browser sends the header with a header editing extension and a token from `pnpm access:token` (a small script that signs one with the local key).
 - A new variable name, `ACCESS_LOCAL_JWKS`, is added to `.dev.vars.example` only. It must not appear in `wrangler.jsonc` (a test greps for it).
@@ -146,14 +146,14 @@ A thrown call cannot be told apart from a network failure, so the message names 
 - Replay: the token is short lived and checked for expiry. There is no extra nonce.
 - Keys are fetched only from the validated team domain.
 - Secrets: `ACCESS_AUD` and `ADMIN_EMAIL` are Worker secrets, never in the repo. The team domain is not secret.
-- The `/admin` responses are never cached and never indexed (spec 0001), including the 403.
+- The `/admin` responses are never cached and never indexed (spec 0001), including the 403. `next.config.ts` `headers()` sets `Cache-Control: no-store` for `/admin/:path*` (which also matches `/admin`), and the middleware's 403 response and the page's refusal content carry the same header. Accepted and documented limit: after the admin signs out, the browser's back button or the Next.js router cache can still show a page that was already loaded in that tab until it is reloaded. It is the admin's own screen on the admin's own device, and every action still needs a valid token.
 
 ### Value sourcing
 
 | Value | Source |
 |---|---|
 | Token | The `Cf-Access-Jwt-Assertion` request header only |
-| Team domain | `ACCESS_TEAM_DOMAIN` (var in `wrangler.jsonc`, both the base and `previews` blocks) |
+| Team domain | `ACCESS_TEAM_DOMAIN` (dashboard secret, production and previews, `.dev.vars` locally; no `wrangler.jsonc` var) |
 | Audience | `ACCESS_AUD` (production secret, preview base config secret, `.dev.vars` locally) |
 | Allowed email | `ADMIN_EMAIL` (production and preview secrets, `.dev.vars` locally) |
 | Keys | `https://<team domain>/cdn-cgi/access/certs`, or `ACCESS_LOCAL_JWKS` only when `getAppEnv()` is not `production` and there is no `cf-ray` header |
@@ -168,7 +168,7 @@ A thrown call cannot be told apart from a network failure, so the message names 
 - **Middleware** (verifies **AC-1**, **AC-8**): no token gives 403 with the no store and noindex headers and the refusal copy; a log spy sees only `{ event, surface, reason }`.
 - **Local key guard** (verifies **AC-10**): `ACCESS_LOCAL_JWKS` is honoured with no `cf-ray` header and `getAppEnv()` not `production`, and ignored with a `cf-ray` header or in production. A preview smoke check sends `Host` and `X-Forwarded-Host` set to `localhost` with a locally signed token and expects 403.
 - **Playwright**: an admin project (header set by global setup) loads `/admin`, with axe in both themes and widths; a no header project gets the 403 page and sees no idea text; a token signed by another key gets the 403; a POST with a foreign `Origin` is refused (verifies **AC-1**, **AC-2**, **AC-11**, **AC-12**).
-- **Production check** (verifies **AC-13**) is done once by hand after the dashboard steps, with screenshots in the PR.
+- **Production check** (verifies **AC-13**) is done once after the dashboard steps, with screenshots in the PR. With no login, request the four URLs (`/admin/`, `/%61dmin`, `/admin?_rsc=x`, `/admin` with `RSC: 1`) and check that each answers with the Access login or a 403 and that no body contains idea text.
 
 ## Dashboard setup for Toyin (names only)
 
@@ -176,13 +176,13 @@ Michael relays these. Nothing here needs a secret in chat: values go into Worker
 
 1. **Check the scope is accepted first.** In Cloudflare Zero Trust, open Access, Applications, Add an application, Self hosted. Try the destination `next-build.jnr4u2.workers.dev` with path `admin`. If it is accepted, go on. If it is refused, stop and tell Michael: the contingency is a custom domain on a zone Toyin owns (D1). Do not turn on the Worker level Access switch instead, because it locks the public board.
 2. **Team name.** In Zero Trust, Settings, Custom Pages or General, find (or choose) the team name. The team domain is `<team name>.cloudflareaccess.com`. Tell Michael the team domain.
-3. **Login method.** Settings, Authentication: keep One time PIN turned on. No identity provider is needed.
-4. **Application.** Name it "Next Build admin". Session duration: 24 hours. Destinations: `next-build.jnr4u2.workers.dev` with path `admin`, and a second destination with path `admin/*`.
-5. **Policy.** Name "Admin only", action Allow, include rule Emails with the admin email. Add no other rule (no Everyone, no email domain rule). Save the application.
-6. **Audience tag.** Open the saved application, Overview, copy the Application Audience (AUD) Tag. It goes into the Worker secret `ACCESS_AUD` (production). Set the secret `ADMIN_EMAIL` to the same email as the policy. Do not paste either value in chat or the repo.
-7. **Team domain var.** Michael or the build task puts the team domain into `ACCESS_TEAM_DOMAIN` in `wrangler.jsonc` (base and `previews`).
+3. **Login method.** Settings, Authentication: keep One time PIN turned on. No identity provider is needed. One time PIN is the only way in, so before relying on it, sign in once and check that the PIN email arrives (spam folder included). If it does not, add a second login method before locking yourself out.
+4. **Application.** Name it "Next Build admin". Session duration: 24 hours. One application with two destinations (not two applications): `next-build.jnr4u2.workers.dev` with path `admin`, and `next-build.jnr4u2.workers.dev` with path `admin/*`.
+5. **Policy.** Name "Admin only", action Allow, include rule Emails with the admin email. Add no other rule (no Everyone, no email domain rule). Everyone else is blocked, because Access denies anyone who matches no Allow policy. Save the application.
+6. **Audience tag and secrets.** Open the saved application, Overview, copy the Application Audience (AUD) Tag. In the Cloudflare dashboard, Workers, `next-build`, Settings, Variables and Secrets, add `ACCESS_AUD`, `ACCESS_TEAM_DOMAIN` and `ADMIN_EMAIL` as secrets (type Secret), once for production and once for previews (the preview base config, as in spec 0001). `ADMIN_EMAIL` is the same email as the policy. The audience tag is not truly secret, and the team domain is public, but they are kept as secrets so a deploy never has two places to disagree. Workers Builds deploys keep secrets set in the dashboard. Do not paste any value in chat or the repo.
+7. **Remove the placeholder.** The build task deletes the empty `ACCESS_TEAM_DOMAIN` placeholder under `vars` (base and `previews`) in `wrangler.jsonc`, because a name set there and as a dashboard secret would collide. The team domain from step 2 is entered in step 6.
 8. **Previews (optional, for hide page proof).** Try a second application "Next Build admin preview" (same policy and session). First option: in the destinations, choose the Workers destination types `preview_worker` (previews of the `next-build` Worker) or `all_preview_workers`, with the paths `admin` and `admin/*`. Only if those are not offered: the hostname wildcard `*-next-build.jnr4u2.workers.dev` with the same paths. If neither is accepted, skip it: previews then answer 403 on `/admin`, which is safe and is the default. If created, its AUD tag goes into the preview base config secret `ACCESS_AUD` and `ADMIN_EMAIL` (spec 0001), then onto each existing preview.
-9. **Try it.** In a private window: the board opens with no login; `/admin` asks for the email and a code; the admin email reaches the admin page; a different email is denied.
+9. **Try it.** In a private window: the board opens with no login; `/admin` asks for the email and a code; the admin email reaches the admin page; a different email is denied. Also with no login, the four URLs `/admin/`, `/%61dmin`, `/admin?_rsc=x` and `/admin` with the header `RSC: 1` each get the Access login or a 403, and none shows an idea (Michael or Dwight checks this with a plain request).
 
 ## Build plan
 
@@ -211,6 +211,7 @@ Each task is a commit or small group of commits in one PR, `/develop admin sign 
 - Each failure looks the same to the admin (a 403 page), so a misconfigured secret is found from the logs (`reason`), not the screen.
 
 **Neutral**:
+- The build stays on `src/middleware.ts` (edge) for now. Renaming it to `proxy.ts` is a later follow-up, because `proxy.ts` runs on the Node runtime only, which OpenNext does not support for it yet.
 - `middleware.ts` gains an admin branch beside the CSP code. A new dependency, `jose`, runs on Workers through Web Crypto.
 
 ## Follow-up
@@ -219,6 +220,7 @@ Each task is a commit or small group of commits in one PR, `/develop admin sign 
 - [ ] Spec 0001 points here for the preview rule and says the preview base config secret holds the preview audience. If the wildcard preview application is skipped (step 8), note that previews answer 403 on `/admin` (`/architect` update to 0001).
 - [ ] Spec 0003's copy table gains two keys: the refusal page copy and "Your admin sign in has ended. Reload this page to sign in again." with the Reload button. Add them in `/develop admin sign in`.
 - [ ] Optional: a "Sign out" link on the admin page to `/cdn-cgi/access/logout`. Not in this spec because it changes the admin header in spec 0003. Ask Toyin whether they want it.
+- [ ] Later: rename `middleware.ts` to `proxy.ts` once OpenNext supports it (it is Node only there). The admin check moves with it.
 - [ ] `/audit` after the slice: note `requireAdmin`, the `Admin` proof and the three check places in `AGENTS.md`.
 - [ ] Questions for Toyin: the session length (24 hours is recommended) and whether to try the preview application (step 8). Neither blocks the build.
 

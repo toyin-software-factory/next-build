@@ -96,7 +96,7 @@ Names only, never values in the repo.
 | Name | Kind | Where it is set |
 |---|---|---|
 | `DB` | D1 binding (database ids are not secret) | `wrangler.jsonc`; preview id per the preview rule above |
-| `ACCESS_TEAM_DOMAIN` | Plain var, e.g. `<team>.cloudflareaccess.com` | `wrangler.jsonc` `vars` |
+| `ACCESS_TEAM_DOMAIN` | Secret, e.g. `<team>.cloudflareaccess.com` | Cloudflare dashboard secret (production and previews), `.dev.vars` locally; no `wrangler.jsonc` var (spec 0006 step 6) |
 | `ACCESS_AUD` | Worker secret (Access application audience tag) | Production: Worker secret with the production application's tag. Previews: preview secret with the preview application's tag. Local: `.dev.vars`. Unset means `/admin` returns 403 |
 | `ADMIN_EMAIL` | Worker secret (the one email allowed into admin) | Production and preview secrets. Unset means `/admin` returns 403 |
 | `TURNSTILE_SECRET_KEY` | Worker secret, used only when `APP_ENV` is `production` | Cloudflare secret. Elsewhere the code uses the public test secret |
@@ -144,7 +144,7 @@ Required checks on `main` (a Toyin action, added after the scaffold): `ci` and t
 ## Follow-up
 
 - [ ] Toyin action at scaffold time: create the D1 databases `next-build` and `next-build-preview` and share both ids; connect the GitHub repo through Workers Builds with the settings above (token with D1 edit); enable preview URLs; share the account's `workers.dev` subdomain so `NEXT_PUBLIC_SITE_URL` can be set.
-- [ ] Toyin action at admin sign in time (feature 7): follow the dashboard steps in spec 0006. Create the Access application for `/admin` (paths `admin` and `admin/*`) allowing only Toyin's email, add `ACCESS_AUD` and `ADMIN_EMAIL` as secrets, and share the team domain for `ACCESS_TEAM_DOMAIN`. The preview Access application is optional: without it, `/admin` on previews is 403 for everyone.
+- [ ] Toyin action at admin sign in time (feature 7): follow the dashboard steps in spec 0006. Create the Access application for `/admin` (paths `admin` and `admin/*`) allowing only Toyin's email, add `ACCESS_AUD` and `ADMIN_EMAIL` as secrets, and `ACCESS_TEAM_DOMAIN` as secrets. The preview Access application is optional: without it, `/admin` on previews is 403 for everyone.
 - [ ] Toyin action at abuse protection time (feature 9): create the Turnstile widget and add its keys.
 - [ ] Toyin action after scaffold: add `ci` and the Workers Builds check as required checks on `main`.
 - [ ] If the bundle size gate fails on the Free plan, Toyin decides on Workers Paid. The scaffold PR reports the measured size.
