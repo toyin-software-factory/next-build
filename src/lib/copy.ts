@@ -42,5 +42,12 @@ export const COPY = {
   overLimit: (over: number) => `${String(over)} over the limit`,
   announceNear: (left: number) => `${String(left)} characters left`,
   announceOver: (over: number) => `${String(over)} characters over the limit`,
+  adminHeading: "Admin",
+  adminPageTitle: "Next Build admin",
+  adminSummary: (ideas: number, hidden: number) =>
+    `${String(ideas)} ${ideas === 1 ? "idea" : "ideas"}, ${String(hidden)} hidden.`,
+  adminRefusal: "This page is only for the site admin.",
+  adminSessionEnded: "Your admin sign in has ended. Reload this page to sign in again.",
+  reload: "Reload",
   voteLabel: (n: number) => (n === 1 ? "1 vote" : `${String(n)} votes`),
 } as const;

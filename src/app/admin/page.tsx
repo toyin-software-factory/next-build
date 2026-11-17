@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { AdminRefusal } from "@/components/admin/AdminRefusal";
 import { listIdeasForAdmin } from "@/db/admin-queries";
 import { requireAdmin } from "@/lib/access";
+import { COPY } from "@/lib/copy";
 
 // Dynamic and never cached: it reads D1 for the admin only (spec 0006).
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Admin | Next Build", robots: { index: false } };
+export const metadata: Metadata = { title: COPY.adminPageTitle, robots: { index: false } };
 
 // The middleware already refused outsiders; this checks again so a missed rule cannot show data.
 export default async function AdminPage() {
@@ -19,11 +20,9 @@ export default async function AdminPage() {
   return (
     <section aria-labelledby="admin-heading">
       <h2 id="admin-heading" className="text-xl leading-7 font-semibold">
-        Admin
+        {COPY.adminHeading}
       </h2>
-      <p className="mt-2 text-muted">
-        {ideas.length} {ideas.length === 1 ? "idea" : "ideas"}, {hidden} hidden.
-      </p>
+      <p className="mt-2 text-muted">{COPY.adminSummary(ideas.length, hidden)}</p>
     </section>
   );
 }

@@ -1,5 +1,7 @@
-/** Words on the admin refusal page. Same for every cause, so nothing tells an outsider what failed. */
-export const ADMIN_REFUSAL_TEXT = "This page is only for the site admin.";
+import { COPY } from "./copy";
+
+/** Words on the admin refusal page (in copy.ts). Same for every cause, so nothing tells an outsider what failed. */
+export const ADMIN_REFUSAL_TEXT = COPY.adminRefusal;
 
 /** Headers every /admin response carries (spec 0006): never cached, never indexed. */
 export const ADMIN_HEADERS = {

@@ -1,15 +1,13 @@
 "use client";
 
 import { ErrorMessage } from "@/components/ErrorMessage";
-
-export const SESSION_ENDED_TEXT =
-  "Your admin sign in has ended. Reload this page to sign in again.";
+import { COPY } from "@/lib/copy";
 
 /** Shown when an admin action is refused or throws: the sign in ended, so the only way on is a reload. */
 export function SessionEnded() {
   return (
     <div className="flex flex-col items-start gap-3">
-      <ErrorMessage message={SESSION_ENDED_TEXT} />
+      <ErrorMessage message={COPY.adminSessionEnded} />
       <button
         type="button"
         className="btn btn-secondary"
@@ -17,7 +15,7 @@ export function SessionEnded() {
           window.location.reload();
         }}
       >
-        Reload
+        {COPY.reload}
       </button>
     </div>
   );
