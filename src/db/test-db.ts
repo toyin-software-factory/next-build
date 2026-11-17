@@ -36,6 +36,7 @@ export async function createTestDb(): Promise<Db> {
   await proxy.env.DB.batch([
     proxy.env.DB.prepare("delete from votes"),
     proxy.env.DB.prepare("delete from ideas"),
+    proxy.env.DB.prepare("delete from rate_events"),
   ]);
   return drizzle(proxy.env.DB, { schema });
 }

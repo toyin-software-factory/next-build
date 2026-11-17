@@ -7,6 +7,7 @@ export const MAX_RAW_LENGTH = 2000;
 export const postIdeaInputSchema = z.object({
   submissionId: z.uuid(),
   text: z.string(),
+  token: z.string().min(1).max(2048).optional(),
 });
 
 export type ParsedIdea =

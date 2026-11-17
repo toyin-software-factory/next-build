@@ -11,6 +11,7 @@ import { MAX_IDEA_LENGTH, ideaLength, normalizeIdea } from "@/lib/idea";
 import { CharacterCounter } from "./CharacterCounter";
 import { ErrorMessage } from "./ErrorMessage";
 import { WarningIcon } from "./icons";
+import { TurnstileWidget, type TurnstileControl } from "./TurnstileWidget";
 
 type Zone = "normal" | "near" | "over";
 type Failure = { code: PostErrorCode; over: number };
@@ -24,9 +25,9 @@ function zoneOf(length: number): Zone {
 }
 
 /** Anything thrown, missing or malformed counts as a server failure. */
-async function send(submissionId: string, text: string): Promise<PostResult> {
+async function send(submissionId: string, text: string, token: string): Promise<PostResult> {
   try {
-    const result = await postIdea({ submissionId, text });
+    const result = await postIdea({ submissionId, text, token });
     return typeof result === "object" && typeof result.ok === "boolean"
       ? result
       : { ok: false, code: "server" };
@@ -35,7 +36,9 @@ async function send(submissionId: string, text: string): Promise<PostResult> {
   }
 }
 
-export function IdeaForm() {
+type Props = { nonce?: string; siteKey?: string | null };
+
+export function IdeaForm({ nonce = "", siteKey = null }: Props) {
   const router = useRouter();
   const ids = useId();
   const counterId = `${ids}-counter`;
@@ -46,6 +49,7 @@ export function IdeaForm() {
   const attempt = useRef<{ id: string; text: string } | null>(null);
   const busy = useRef(false);
   const zone = useRef<Zone>("normal");
+  const challenge = useRef<TurnstileControl>(null);
 
   const length = ideaLength(normalizeIdea(text));
   const fieldFailure = failure !== null && FIELD_CODES.includes(failure.code) ? failure : null;
@@ -79,7 +83,12 @@ export function IdeaForm() {
         // Load the page again so middleware sets the voter cookie, then resend with the same id.
         await fetch("/", { credentials: "same-origin" }).catch(() => undefined);
       }
-      const result = await send(id, sentText);
+      // A fresh token for every attempt. Null means the check never produced one: the server is not called.
+      const token = (await challenge.current?.getToken()) ?? null;
+      const result: PostResult =
+        token === null ? { ok: false, code: "challenge_failed" } : await send(id, sentText, token);
+      // Tokens are single use, so the widget is reset after every attempt, whatever the result.
+      challenge.current?.reset();
       if (result.ok) {
         attempt.current = null;
         setText("");
@@ -154,6 +163,7 @@ export function IdeaForm() {
       >
         {sending ? COPY.submitting : COPY.submit}
       </button>
+      <TurnstileWidget ref={challenge} siteKey={siteKey} nonce={nonce} />
       {otherFailure !== null ? (
         <div className="mt-3">
           <ErrorMessage

@@ -92,3 +92,13 @@ export async function setVote(
   if (row === undefined || row.visible === 0) return { ok: false, code: "idea_unavailable" };
   return { ok: true, count: row.count, voted: row.voted > 0 };
 }
+
+/** True when an idea with this id is already stored (a retry after a lost answer, spec 0007 AC-17). */
+export async function ideaExists(id: string, db: Db = getDb()): Promise<boolean> {
+  const rows = await db
+    .select({ id: ideas.id })
+    .from(ideas)
+    .where(sql`${ideas.id} = ${id}`)
+    .limit(1);
+  return rows.length === 1;
+}
