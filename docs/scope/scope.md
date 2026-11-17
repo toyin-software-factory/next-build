@@ -20,7 +20,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 7 | Admin sign in | Slice 3 | in-progress |
 | 8 | Hide spam | Slice 3 | in-progress |
 | 9 | Abuse protection | Slice 4 | in-progress |
-| 10 | SEO and share card | Slice 4 | in-progress |
+| 10 | SEO and share card | Slice 4 | done |
 
 ## Foundations
 
@@ -139,15 +139,15 @@ Keep counts honest and the board clean without sign up: per visitor limits on po
 
 spec [0007](../specs/0007-abuse-protection.md) · code in `src/lib/abuse.ts`, `src/lib/turnstile.ts`, `src/db/abuse-queries.ts`, `src/components/TurnstileWidget.tsx`
 
-### 10. SEO and share card · in-progress
+### 10. SEO and share card · done
 Title, description and a share image so links look good in Slack, X and search.
 **Done when:** the page has a proper title, meta description and Open Graph card, and passes a basic Lighthouse SEO and accessibility check.
 - [x] Design it (spec): `/architect seo and share card`
 - [x] Build it: `/develop seo and share card`
   - [x] Title, description, canonical, robots and sitemap
   - [x] Share card (Open Graph and social image)
-- [ ] Verify it: `/check verify seo and share card`
-- [ ] Test it: `/test seo and share card`
+- [x] Verify it: `/check verify seo and share card`
+- [x] Test it: `/test seo and share card`
 
 spec [0008](../specs/0008-seo-share-card.md) · code in `src/app/layout.tsx`, `src/app/opengraph-image.png`, `scripts/share-card.mjs`
 

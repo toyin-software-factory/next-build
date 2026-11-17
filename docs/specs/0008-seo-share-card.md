@@ -1,7 +1,7 @@
 # 0008. Slice 4: SEO and share card
 
 **Date**: 2026-11-17
-**Status**: In Progress
+**Status**: Accepted
 **Feature**: scope feature 10, "SEO and share card" (Slice 4)
 
 ## Summary
