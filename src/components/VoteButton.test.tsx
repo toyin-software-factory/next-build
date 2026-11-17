@@ -88,7 +88,11 @@ describe("VoteButton", () => {
 
   it.each([
     ["server", "Couldn't save your vote.", true],
-    ["rate_limited", "You're voting too fast. Wait a moment and try again.", false],
+    [
+      "rate_limited",
+      "You've reached the voting limit for now. Please try again in a little while.",
+      false,
+    ],
     ["invalid", "Couldn't save your vote.", false],
   ] as const)(
     "shows a %s failure in the row, not in the status region",

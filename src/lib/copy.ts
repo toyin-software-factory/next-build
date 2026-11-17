@@ -19,7 +19,8 @@ export const POST_ERROR_COPY = {
   raw_too_long: () => "That's too long to add.",
   invalid: () => "That idea can't be added. Check it and try again.",
   no_voter: () => "Please reload the page and try again.",
-  rate_limited: () => "You're adding ideas too fast. Wait a moment and try again.",
+  rate_limited: () =>
+    "You've reached the posting limit for now. Please try again in a little while.",
   challenge_failed: () => "We couldn't confirm you're not a robot. Try again.",
   server: () => "We couldn't add your idea. Try again.",
 } satisfies Record<PostErrorCode, (over?: number) => string>;
@@ -29,7 +30,7 @@ export const VOTE_ERROR_COPY = {
   invalid: "Couldn't save your vote.",
   no_voter: "Please reload the page and try again.",
   idea_unavailable: "This idea is no longer on the board.",
-  rate_limited: "You're voting too fast. Wait a moment and try again.",
+  rate_limited: "You've reached the voting limit for now. Please try again in a little while.",
   server: "Couldn't save your vote.",
 } satisfies Record<VoteErrorCode, string>;
 
@@ -41,6 +42,7 @@ export const COPY = {
   submit: "Add idea",
   submitting: "Adding…",
   tryAgain: "Try again",
+  challengeStep: "One more step: complete the check below.",
   added: "Idea added",
   boardError: "We couldn't load the ideas. Try again.",
   emptyHeading: "No ideas yet",

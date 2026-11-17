@@ -9,3 +9,6 @@ ACCESS_AUD=
 ADMIN_EMAIL=
 # Cloudflare's published Turnstile test secret (always passes). The real one is a Worker secret, production only.
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+# Salt for the address hash behind the rate limits (spec 0007). This is a public test value for local runs
+# and CI only. Previews and production each need their own long random Worker secret.
+ABUSE_SALT=local-test-salt-not-a-secret-0000
