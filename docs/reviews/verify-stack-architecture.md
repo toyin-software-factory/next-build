@@ -8,7 +8,7 @@
 
 | Behavior | How you can see it | Result |
 |---|---|---|
-| The stack is recorded in a spec | `docs/specs/0001-stack-architecture/index.md` (status Proposed, rationale beside it; the status line is spec owned, left for /architect) | Met |
+| The stack is recorded in a spec | `docs/specs/0001-stack-architecture/index.md` (status In Progress, rationale beside it) | Met |
 | Exact pins match the spec | `pnpm install --frozen-lockfile` on Node 26.13.0 and pnpm 12.18.0 printed `+ vitest 5.1.0`, `+ wrangler 4.158.0`, `Done in 25.4s`, exit 0 | Met |
 | The app runs locally in the real Workers runtime | `pnpm preview` (OpenNext build, local D1, `wrangler`), then `curl -i http://localhost:8787/` gave `200`, title `Next Build`, a nonce CSP header, `x-content-type-options: nosniff`, `referrer-policy: strict-origin-when-cross-origin`, `permissions-policy`. `/robots.txt` and `/sitemap.xml` gave `200` | Met |
 | CI runs every step of the contract | [CI run 44067199518](https://github.com/toyin-software-factory/next-build/actions/runs/44067199518) on `main`: Install, Lint, Format, Typecheck, Migration drift check, Migrate local D1, Unit tests, OpenNext build, Worker size gate, Playwright, report upload, all `success` | Met |
