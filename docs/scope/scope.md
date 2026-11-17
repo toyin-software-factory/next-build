@@ -71,15 +71,15 @@ spec [0003](../specs/0003-design-system/index.md)
 The public page: one text box (140 characters max, counter shown) and the list of visible ideas. This is the walking skeleton, live on Workers end to end.
 **Done when:** a visitor can post an idea of 1 to 140 characters, sees it on the list right away, empty and over limit input are refused with a clear message, and the empty board and error states render.
 - [x] Design it (spec): `/architect suggest an idea and see the board`
-- [ ] Build it: `/develop suggest an idea and see the board`
-  - [ ] Text rules, `ideas` and `votes` tables, first migration, voter cookie
-  - [ ] Post action and board query, the thin thread live on Workers
-  - [ ] Tokens, theme and the board components (form, list, rows)
-  - [ ] Empty and error states, browser proof
-- [ ] Verify it: `/check verify suggest an idea and see the board`
+- [x] Build it: `/develop suggest an idea and see the board`
+  - [x] Text rules, `ideas` and `votes` tables, first migration, voter cookie
+  - [x] Post action and board query, the thin thread live on Workers
+  - [x] Tokens, theme and the board components (form, list, rows)
+  - [x] Empty and error states, browser proof
+- [x] Verify it: `/check verify suggest an idea and see the board`
 - [ ] Test it: `/test suggest an idea and see the board`
 
-spec [0004](../specs/0004-suggest-idea-board.md)
+spec [0004](../specs/0004-suggest-idea-board.md) · code in `src/app/page.tsx`, `src/app/actions.ts`, `src/components/`, `src/db/`, `src/lib/idea.ts`
 
 ## Slice 2: Upvoting
 

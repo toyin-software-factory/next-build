@@ -7,7 +7,7 @@ One public page where anyone suggests what to build next (140 characters) and up
 - **Runtime**: TypeScript 6.0 strict, Node 26.13 (`.nvmrc`), Cloudflare Workers (`compatibility_date` 2026-11-01, `nodejs_compat`)
 - **Framework**: Next.js 16.4.5 App Router and React 19.3.1, deployed by `@opennextjs/cloudflare` 1.20.17 (wrangler 4.158)
 - **Data**: Cloudflare D1 through Drizzle ORM 0.45.4 and drizzle-kit 0.31.11. Validation with zod 4.6.7
-- **UI and tests**: Tailwind 4.3.5; Vitest 5.1.0 with Testing Library; Playwright 1.65.0 with axe 4.14.0
+- **UI and tests**: Tailwind 4.3.5; Inter (`@fontsource-variable/inter` 5.3.0, loaded with `next/font/local`, system stack as fallback); Vitest 5.1.0 with Testing Library and vitest-axe 0.1.0; Playwright 1.65.0 with axe 4.14.0
 - **Tooling**: pnpm 12.18.0, ESLint 9 (typescript-eslint strict type checked, jsx-a11y), Prettier 3.9 with the Tailwind plugin
 - Exact pins live in `package.json`. Decisions and reasons: `docs/specs/0001-stack-architecture/index.md`.
 
@@ -41,11 +41,12 @@ pnpm db:reset:preview  # drops app tables in the shared preview DB; owner of the
 - TypeScript strict: no `any`, no `@ts-ignore`, exhaustive unions. Named exports, except where Next requires a default (pages, layouts, route files).
 - zod validates every input: server actions, route handlers, form data and env. Parse at the edge, then pass typed values inward. Read env only through `getAppEnv()` in `src/lib/env.ts`.
 - Small focused components. One job each, props typed, server components by default, `"use client"` only where needed.
-- Accessibility to WCAG AA: semantic HTML, visible keyboard focus, contrast, labels. axe runs on every page in e2e. Design tokens: `docs/specs/0003-design-system/index.md`.
+- Accessibility to WCAG AA: semantic HTML, visible keyboard focus, contrast, labels. axe runs on every page in e2e. Design tokens: `docs/specs/0003-design-system/index.md`. Design system: build all UI to `docs/design/design.md`; token values live in `src/app/globals.css`.
 - Functional style: pure functions, immutable data, side effects at the edges, explicit error returns for expected failures.
 - Database: only `src/db/client.ts` touches D1, server only (`import "server-only"`). Pages that read D1 are `force-dynamic`.
 - D1 schema: one open schema PR at a time (the lead sequences them). Migrations only add (new tables, new nullable columns) until launch. Run `pnpm db:generate` and commit `drizzle/`; CI fails on drift.
 - Config names only, never values, in the repo. Names are in `.env.example` and `.dev.vars.example`: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXTJS_ENV`, `APP_ENV`, `ACCESS_AUD`, `ADMIN_EMAIL`, `TURNSTILE_SECRET_KEY`. Secrets go in `.dev.vars` (git ignored) or Cloudflare.
+- Logs never carry idea text, the full voter id or error messages. `logPost` adds `voter8` only when `isVoterId()` passed (`src/lib/log.ts`).
 - Tests focus on logic that matters (vote counts, one vote per browser, hiding). Vitest sits next to the code. Playwright covers pages, headers and accessibility.
 - Checks before commit: simple-git-hooks runs lint-staged (ESLint and Prettier on staged files). Keep `pnpm lint`, `format:check`, `typecheck` and `test` green.
 
