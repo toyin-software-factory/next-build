@@ -37,6 +37,8 @@ test("another browser sees the count but not the voted state, and adds its own v
   await post(page, text);
   await vote(page, text).click();
   await expect(vote(page, text)).toHaveAccessibleName("Upvote idea, 1 vote");
+  // The success announcement comes only after the server stored the vote.
+  await expect(page.locator("#status")).toHaveText("Voted. Now 1 vote.");
 
   const other = await browser.newContext();
   const second = await other.newPage();

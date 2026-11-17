@@ -139,6 +139,35 @@ describe("VoteButton", () => {
     expect(button).toHaveFocus();
   });
 
+  it("does not add a second vote when a retry finds the vote already stored", async () => {
+    setVote.mockRejectedValueOnce(new Error("lost answer"));
+    const tree = (voted: boolean, count: number) => (
+      <main>
+        <div id="status" role="status" />
+        <h2 id="ideas-heading" tabIndex={-1}>
+          Ideas
+        </h2>
+        <p id={`idea-${ID}-text`}>Dark mode</p>
+        <VoteButton ideaId={ID} count={count} voted={voted} />
+      </main>
+    );
+    const { rerender } = render(tree(false, 2));
+    fireEvent.click(screen.getByRole("button", { name: /Upvote idea/ }));
+    const again = await screen.findByRole("button", { name: "Try again" });
+    // The recovery refresh brings the stored vote.
+    rerender(tree(true, 3));
+    let resolve: (value: unknown) => void = () => undefined;
+    setVote.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    fireEvent.click(again);
+    await waitFor(() => {
+      expect(setVote).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByRole("button", { name: /Upvote idea/ })).toHaveAccessibleName(
+      "Upvote idea, 3 votes",
+    );
+    resolve({ ok: true, count: 3, voted: true });
+  });
+
   it("pressing the vote button on an error row clears the error and sends the new opposite", async () => {
     setVote.mockResolvedValueOnce({ ok: false, code: "rate_limited" });
     const button = setup();

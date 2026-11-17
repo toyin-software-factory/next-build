@@ -38,11 +38,13 @@ export function VoteButton({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [shown, setShown] = useOptimistic<Shown, Want>({ voted, count }, (current, want) =>
-    want === "on"
+  const [shown, setShown] = useOptimistic<Shown, Want>({ voted, count }, (current, want) => {
+    // Already in the wanted state (a retry after a lost answer): nothing to add or take.
+    if (current.voted === (want === "on")) return current;
+    return want === "on"
       ? { voted: true, count: current.count + 1 }
-      : { voted: false, count: Math.max(0, current.count - 1) },
-  );
+      : { voted: false, count: Math.max(0, current.count - 1) };
+  });
   const [error, setError] = useState<RowError | null>(null);
   const inFlight = useRef(false);
   const button = useRef<HTMLButtonElement>(null);
