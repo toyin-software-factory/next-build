@@ -3,7 +3,7 @@ export const MAX_IDEA_LENGTH = 140;
 
 /** NFC, drop NUL (SQLite length() stops at it), trim the ends, then collapse any run of whitespace (new lines too) into one space. */
 export function normalizeIdea(text: string): string {
-  return text.normalize("NFC").replaceAll("\u0000", "").replace(/\s+/gu, " ").trim();
+  return text.replaceAll("\u0000", "").normalize("NFC").replace(/\s+/gu, " ").trim();
 }
 
 /** Length as people see it: code points, matching SQLite length() on text. */
