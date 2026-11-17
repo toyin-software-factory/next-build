@@ -45,11 +45,15 @@ test.describe("with the stubbed widget", () => {
     const message = page.getByText(
       "You've reached the voting limit for now. Please try again in a little while.",
     );
-    for (let i = 0; i < 70 && (await message.count()) === 0; i++) {
+    let attempts = 0;
+    while (attempts < 70 && (await message.count()) === 0) {
+      attempts += 1;
       await button.click();
       await expect(button).not.toHaveAttribute("aria-disabled", "true");
     }
     await expect(message).toBeVisible();
+    // The burst limit (30 per 10 seconds) trips well before the hourly browser cap of 60 would.
+    expect(attempts).toBeLessThan(60);
   });
 
   test("the status message for a shown check is announced and the page stays accessible (AC-12)", async ({

@@ -134,6 +134,19 @@ async function burst(
   }
 }
 
+async function refusalReason(
+  key: string | null,
+  slot: Parameters<typeof reachedCap>[0],
+  db: Db,
+): Promise<"hourly_voter" | "hourly_ip"> {
+  if (key === null) return "hourly_voter";
+  try {
+    return await reachedCap(slot, db);
+  } catch {
+    return "hourly_ip";
+  }
+}
+
 /**
  * The hourly limit: one atomic statement checks the browser cap and the address cap and records the
  * request. Fails open when D1 errors. Without a salt only the browser cap runs.
@@ -156,7 +169,8 @@ async function hourly(
             db,
           );
     if (!allowed) {
-      const reason = key === null ? "hourly_voter" : await reachedCap(slot, db);
+      // The refusal stands even if the diagnostic lookup fails: only the quota statement fails open.
+      const reason = await refusalReason(key, slot, db);
       logAbuse({ event: "abuse_refused", kind, reason, voterId });
       return { ok: false, code: "rate_limited" };
     }

@@ -74,6 +74,26 @@ describe("TurnstileWidget (AC-12, AC-13)", () => {
     await expect(wait).resolves.toBeNull();
   });
 
+  it("an old timer never ends a later wait (overlapping waits)", async () => {
+    const control = mount();
+    const first = control.current?.getToken();
+    await vi.advanceTimersByTimeAsync(TOKEN_WAIT_MS - 1000);
+    options.callback?.("tok-1");
+    await expect(first).resolves.toBe("tok-1");
+    act(() => {
+      control.current?.reset();
+    });
+    const second = control.current?.getToken();
+    let done = false;
+    void second?.then(() => {
+      done = true;
+    });
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(TOKEN_WAIT_MS);
+    await expect(second).resolves.toBeNull();
+  });
+
   it("does not cut off a visitor who is completing a shown check", async () => {
     const control = mount();
     const wait = control.current?.getToken();

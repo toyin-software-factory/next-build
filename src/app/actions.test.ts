@@ -82,6 +82,16 @@ describe("postIdea abuse checks", () => {
     expect(await rows()).toHaveLength(1);
   });
 
+  it("answers success when the idea was saved while the check refused (AC-17 race)", async () => {
+    const lookup = vi.spyOn(queries, "ideaExists");
+    lookup.mockResolvedValueOnce(false);
+    checkPost.mockImplementationOnce(async () => {
+      await postIdea({ submissionId: SUB, text: "Dark mode" });
+      return { ok: false, code: "rate_limited" };
+    });
+    expect(await postIdea({ submissionId: SUB, text: "Dark mode" })).toEqual({ ok: true });
+  });
+
   it("still runs the checks when the lookup fails", async () => {
     vi.spyOn(queries, "ideaExists").mockRejectedValueOnce(new Error("d1 down"));
     expect(await postIdea({ submissionId: SUB, text: "Dark mode" })).toEqual({ ok: true });

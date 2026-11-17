@@ -44,6 +44,17 @@ export async function postIdea(input: unknown): Promise<PostResult> {
   const ip = (await headers()).get("cf-connecting-ip");
   const check = await checkPost({ voterId, ip, token: parsedInput.data.token });
   if (!check.ok) {
+    // A retry may have lost a race with the original request, which saved the idea (AC-17).
+    if (check.code === "rate_limited") {
+      try {
+        if (await ideaExists(parsedInput.data.submissionId)) {
+          logPost({ event: "idea_posted", code: "ok", voterId });
+          return { ok: true };
+        }
+      } catch {
+        // Keep the refusal.
+      }
+    }
     logPost({ event: "idea_refused", code: check.code, voterId });
     return { ok: false, code: check.code };
   }

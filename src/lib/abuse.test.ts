@@ -203,6 +203,30 @@ describe("burst limit and order (AC-1, AC-9)", () => {
 });
 
 describe("failing open (AC-10)", () => {
+  it("keeps the refusal when only the reason lookup fails", async () => {
+    for (let i = 0; i < LIMITS.post.voter; i++) await post(V(1), "198.51.100.40");
+    const client = db.$client;
+    const flaky = new Proxy(db, {
+      get(target, prop) {
+        if (prop !== "$client") return Reflect.get(target, prop) as unknown;
+        return new Proxy(client, {
+          get(c, name) {
+            if (name === "prepare")
+              return (sql: string) => {
+                if (/^\s*select count/i.test(sql)) throw new Error("lookup down");
+                return c.prepare(sql);
+              };
+            const value = Reflect.get(c, name) as unknown;
+            return typeof value === "function" ? (value as () => unknown).bind(c) : value;
+          },
+        });
+      },
+    });
+    expect(await post(V(1), "198.51.100.40", { db: flaky })).toEqual({
+      ok: false,
+      code: "rate_limited",
+    });
+  });
   it("skips the burst limit when the binding throws or is missing, and logs one degraded line", async () => {
     const boom: Limiter = { limit: () => Promise.reject(new TypeError("secret detail")) };
     expect((await post(V(1), "198.51.100.15", { limiter: boom })).ok).toBe(true);

@@ -56,12 +56,22 @@ export function TurnstileWidget({ siteKey, nonce, ref }: Props) {
   const widgetId = useRef<string | null>(null);
   const token = useRef<string | null>(null);
   const interactive = useRef(false);
-  const waiters = useRef<((value: string | null) => void)[]>([]);
+  const waiters = useRef<{ resolve: (value: string | null) => void; timer: number }[]>([]);
 
   const settle = useCallback((value: string | null) => {
     const pending = waiters.current;
     waiters.current = [];
-    for (const resolve of pending) resolve(value);
+    for (const waiter of pending) {
+      window.clearTimeout(waiter.timer);
+      waiter.resolve(value);
+    }
+  }, []);
+
+  /** Ends one wait only, so an old timer never settles a later wait. */
+  const expire = useCallback((waiter: { resolve: (value: string | null) => void }) => {
+    if (interactive.current) return;
+    waiters.current = waiters.current.filter((w) => w !== waiter);
+    waiter.resolve(null);
   }, []);
 
   const fail = useCallback(() => {
@@ -105,11 +115,15 @@ export function TurnstileWidget({ siteKey, nonce, ref }: Props) {
         if (siteKey === null) return Promise.resolve(null);
         if (token.current !== null) return Promise.resolve(token.current);
         return new Promise<string | null>((resolve) => {
-          waiters.current.push(resolve);
+          const waiter = {
+            resolve,
+            timer: 0,
+          };
           // The limit only counts while no check is shown: a visitor completing one is never cut off.
-          window.setTimeout(() => {
-            if (!interactive.current) settle(null);
+          waiter.timer = window.setTimeout(() => {
+            expire(waiter);
           }, TOKEN_WAIT_MS);
+          waiters.current.push(waiter);
         });
       },
       reset: () => {
@@ -118,7 +132,7 @@ export function TurnstileWidget({ siteKey, nonce, ref }: Props) {
         if (api !== undefined && widgetId.current !== null) api.reset(widgetId.current);
       },
     }),
-    [settle, siteKey],
+    [expire, siteKey],
   );
 
   useEffect(() => {
