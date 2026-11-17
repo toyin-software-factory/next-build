@@ -52,8 +52,8 @@ test.describe("with the stubbed widget", () => {
       await expect(button).not.toHaveAttribute("aria-disabled", "true");
     }
     await expect(message).toBeVisible();
-    // The burst limit (30 per 10 seconds) trips well before the hourly browser cap of 60 would.
-    expect(attempts).toBeLessThan(60);
+    // The hourly browser cap (20) trips before the burst limit (30 per 10 seconds) would.
+    expect(attempts).toBeLessThanOrEqual(21);
   });
 
   test("the status message for a shown check is announced and the page stays accessible (AC-12)", async ({
