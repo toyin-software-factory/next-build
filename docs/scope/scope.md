@@ -93,7 +93,7 @@ A vote button on each idea. One vote per idea per browser, tapping again removes
   - [x] `VoteButton` behaviour and failure states
   - [x] Browser proof
 - [x] Verify it: `/check verify upvoting`
-- [ ] Test it: `/test upvoting`
+- [x] Test it: `/test upvoting`
 
 spec [0005](../specs/0005-upvoting.md) · code in `src/components/VoteButton.tsx`, `src/app/actions.ts`, `src/db/queries.ts`, `src/lib/abuse.ts`
 
