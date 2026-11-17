@@ -29,6 +29,16 @@ export function ArrowUpIcon({ className }: IconProps) {
   );
 }
 
+/** The voted state of the vote arrow: same shape, filled. */
+export function ArrowUpFilledIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M10 16V4M5 9l5-5 5 5" />
+      <path d="M5 9l5-5 5 5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function LightbulbIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>

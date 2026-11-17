@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { axe } from "vitest-axe";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/app/actions", () => ({ setVote: vi.fn(), postIdea: vi.fn() }));
 
 import { CharacterCounter } from "./CharacterCounter";
 import { IdeaList } from "./IdeaList";
@@ -41,6 +44,20 @@ describe("IdeaList", () => {
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent("Dark mode");
     expect(items[1]).toHaveTextContent("Emoji 👍 reactions");
+  });
+
+  it("keeps each row's own vote button when the order changes (AC-5)", () => {
+    const { rerender } = render(<IdeaList ideas={ideas} />);
+    const before = screen.getAllByRole("button", { name: /Upvote idea/ });
+    const bButton = before[1];
+    bButton?.focus();
+    const [a, b] = ideas;
+    if (!a || !b) throw new Error("fixture");
+    rerender(<IdeaList ideas={[{ ...b, votes: 4, voted: true }, a]} />);
+    const after = screen.getAllByRole("button", { name: /Upvote idea/ });
+    expect(after[0]).toBe(bButton);
+    expect(after[0]).toHaveFocus();
+    expect(after[0]).toHaveAttribute("aria-pressed", "true");
   });
 
   it("has no axe violations", async () => {

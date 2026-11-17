@@ -1,4 +1,5 @@
 import { MAX_IDEA_LENGTH } from "./idea";
+import type { VoteErrorCode } from "./schemas";
 
 export type PostErrorCode =
   | "empty"
@@ -23,6 +24,15 @@ export const POST_ERROR_COPY = {
   server: () => "We couldn't add your idea. Try again.",
 } satisfies Record<PostErrorCode, (over?: number) => string>;
 
+/** Message for each vote refusal (spec 0005). A code without a string fails the type check. */
+export const VOTE_ERROR_COPY = {
+  invalid: "Couldn't save your vote.",
+  no_voter: "Please reload the page and try again.",
+  idea_unavailable: "This idea is no longer on the board.",
+  rate_limited: "You're voting too fast. Wait a moment and try again.",
+  server: "Couldn't save your vote.",
+} satisfies Record<VoteErrorCode, string>;
+
 export const COPY = {
   productName: "Next Build",
   purpose: "Suggest what we build next, and vote for the ideas you want.",
@@ -42,5 +52,8 @@ export const COPY = {
   overLimit: (over: number) => `${String(over)} over the limit`,
   announceNear: (left: number) => `${String(left)} characters left`,
   announceOver: (over: number) => `${String(over)} characters over the limit`,
+  voteName: (n: number) => `Upvote idea, ${n === 1 ? "1 vote" : `${String(n)} votes`}`,
+  voted: (n: number) => `Voted. Now ${n === 1 ? "1 vote" : `${String(n)} votes`}.`,
+  notVoted: (n: number) => `Not voted. Now ${n === 1 ? "1 vote" : `${String(n)} votes`}.`,
   voteLabel: (n: number) => (n === 1 ? "1 vote" : `${String(n)} votes`),
 } as const;

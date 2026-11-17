@@ -1,0 +1,8 @@
+{
+  "tool": "vitest",
+  "additionalTools": ["@testing-library/react", "vitest-axe"],
+  "e2eTool": "playwright",
+  "testDir": "src",
+  "filePattern": "*.test.ts(x)",
+  "packageManager": "pnpm"
+}
