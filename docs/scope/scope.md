@@ -15,7 +15,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 2 | Coding standards & tooling | Foundation | done |
 | 3 | Data model | Foundation | in-progress |
 | 4 | Design system & UI foundation | Foundation | in-progress |
-| 5 | Suggest an idea and see the board | Slice 1 | in-progress |
+| 5 | Suggest an idea and see the board | Slice 1 | done |
 | 6 | Upvoting | Slice 2 | done |
 | 7 | Admin sign in | Slice 3 | in-progress |
 | 8 | Hide spam | Slice 3 | planned |
@@ -67,7 +67,7 @@ spec [0003](../specs/0003-design-system/index.md)
 
 ## Slice 1: Suggest an idea and see the board
 
-### 5. Suggest an idea and see the board · in-progress
+### 5. Suggest an idea and see the board · done
 The public page: one text box (140 characters max, counter shown) and the list of visible ideas. This is the walking skeleton, live on Workers end to end.
 **Done when:** a visitor can post an idea of 1 to 140 characters, sees it on the list right away, empty and over limit input are refused with a clear message, and the empty board and error states render.
 - [x] Design it (spec): `/architect suggest an idea and see the board`
@@ -77,7 +77,7 @@ The public page: one text box (140 characters max, counter shown) and the list o
   - [x] Tokens, theme and the board components (form, list, rows)
   - [x] Empty and error states, browser proof
 - [x] Verify it: `/check verify suggest an idea and see the board`
-- [ ] Test it: `/test suggest an idea and see the board`
+- [x] Test it: `/test suggest an idea and see the board`
 
 spec [0004](../specs/0004-suggest-idea-board.md) · code in `src/app/page.tsx`, `src/app/actions.ts`, `src/components/`, `src/db/`, `src/lib/idea.ts`
 
