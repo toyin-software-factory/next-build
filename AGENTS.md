@@ -47,7 +47,7 @@ pnpm db:reset:preview  # drops app tables in the shared preview DB; owner of the
 - Database: only `src/db/client.ts` touches D1, server only (`import "server-only"`). Pages that read D1 are `force-dynamic`.
 - D1 schema: one open schema PR at a time (the lead sequences them). Migrations only add (new tables, new nullable columns) until launch. Run `pnpm db:generate` and commit `drizzle/`; CI fails on drift.
 - Config names only, never values, in the repo. Names are in `.env.example` and `.dev.vars.example`: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXTJS_ENV`, `APP_ENV`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `ADMIN_EMAIL`, `ACCESS_LOCAL_JWKS`, `TURNSTILE_SECRET_KEY`. Secrets go in `.dev.vars` (git ignored) or Cloudflare.
-- Logs never carry idea text, the full voter id or error messages. `logPost` adds `voter8` only when `isVoterId()` passed (`src/lib/log.ts`).
+- Logs never carry idea text, the full voter id or error messages. `logPost` and `logVote` add `voter8` only when `isVoterId()` passed (`src/lib/log.ts`); vote logs hold only `event`, `code`, `voter8` and `errorName`.
 - Tests focus on logic that matters (vote counts, one vote per browser, hiding). Vitest sits next to the code. Playwright covers pages, headers and accessibility.
 - Checks before commit: simple-git-hooks runs lint-staged (ESLint and Prettier on staged files). Keep `pnpm lint`, `format:check`, `typecheck` and `test` green.
 

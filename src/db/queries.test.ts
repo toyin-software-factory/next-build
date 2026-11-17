@@ -7,7 +7,7 @@ vi.mock("./client", () => ({
   },
 }));
 
-import { BOARD_LIMIT, getBoard, insertIdea, type Db } from "./queries";
+import { BOARD_LIMIT, getBoard, insertIdea, setVote, type Db } from "./queries";
 import { ideas, votes } from "./schema";
 import { createTestDb, disposeTestDb } from "./test-db";
 
@@ -94,5 +94,58 @@ describe("votes", () => {
     // A different voter on the same idea is fine.
     await db.insert(votes).values({ ideaId: "a", voterId: V2, createdAt: new Date(3) });
     expect(await db.select().from(votes)).toHaveLength(2);
+  });
+});
+
+describe("setVote", () => {
+  it("turns on and off, and repeating either changes nothing more", async () => {
+    await db.insert(ideas).values(idea("a", 1));
+    const on = { ideaId: "a", voterId: V1, want: "on" as const };
+    const off = { ...on, want: "off" as const };
+    expect(await setVote(on, db)).toEqual({ ok: true, count: 1, voted: true });
+    expect(await setVote(on, db)).toEqual({ ok: true, count: 1, voted: true });
+    expect(await setVote(off, db)).toEqual({ ok: true, count: 0, voted: false });
+    expect(await setVote(off, db)).toEqual({ ok: true, count: 0, voted: false });
+  });
+  it("keeps one row for the same browser under parallel requests", async () => {
+    await db.insert(ideas).values(idea("a", 1));
+    await Promise.all(
+      Array.from({ length: 5 }, () => setVote({ ideaId: "a", voterId: V1, want: "on" }, db)),
+    );
+    expect(await db.select().from(votes)).toHaveLength(1);
+  });
+  it("counts each browser once and only removes its own vote", async () => {
+    await db.insert(ideas).values(idea("a", 1));
+    await setVote({ ideaId: "a", voterId: V1, want: "on" }, db);
+    expect(await setVote({ ideaId: "a", voterId: V2, want: "on" }, db)).toEqual({
+      ok: true,
+      count: 2,
+      voted: true,
+    });
+    expect(await setVote({ ideaId: "a", voterId: V1, want: "off" }, db)).toEqual({
+      ok: true,
+      count: 1,
+      voted: false,
+    });
+  });
+  it("refuses a hidden or missing idea and leaves votes untouched", async () => {
+    await db.insert(ideas).values(idea("h", 1, "h", 5));
+    for (const want of ["on", "off"] as const) {
+      for (const ideaId of ["h", "missing"])
+        expect(await setVote({ ideaId, voterId: V1, want }, db)).toEqual({
+          ok: false,
+          code: "idea_unavailable",
+        });
+    }
+    expect(await db.select().from(votes)).toHaveLength(0);
+  });
+  it("does not remove an existing vote once the idea is hidden", async () => {
+    await db.insert(ideas).values(idea("a", 1));
+    await setVote({ ideaId: "a", voterId: V1, want: "on" }, db);
+    await db.update(ideas).set({ hiddenAt: new Date(9) });
+    expect(await setVote({ ideaId: "a", voterId: V1, want: "off" }, db)).toMatchObject({
+      code: "idea_unavailable",
+    });
+    expect(await db.select().from(votes)).toHaveLength(1);
   });
 });

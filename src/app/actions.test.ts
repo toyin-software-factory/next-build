@@ -11,12 +11,19 @@ vi.mock("next/headers", () => ({
     }),
 }));
 vi.mock("@/db/client", () => ({ getDb: () => state.db }));
+const checkVote = vi.hoisted(() =>
+  vi.fn<() => Promise<{ ok: true } | { ok: false; code: "rate_limited" }>>(),
+);
+vi.mock("@/lib/abuse", async (original) => ({
+  ...(await original<typeof import("@/lib/abuse")>()),
+  checkVote,
+}));
 
 import { createTestDb, disposeTestDb } from "@/db/test-db";
-import { ideas } from "@/db/schema";
+import { ideas, votes } from "@/db/schema";
 import * as queries from "@/db/queries";
 
-import { postIdea } from "./actions";
+import { postIdea, setVote } from "./actions";
 
 const VOTER = "11111111-1111-4111-8111-111111111111";
 const SUB = "22222222-2222-4222-8222-222222222222";
@@ -27,6 +34,8 @@ beforeEach(async () => {
   logs = [];
   vi.spyOn(console, "log").mockImplementation((line: string) => void logs.push(line));
   state.db = await createTestDb();
+  checkVote.mockReset();
+  checkVote.mockResolvedValue({ ok: true });
 });
 
 afterAll(disposeTestDb);
@@ -99,5 +108,142 @@ describe("postIdea", () => {
     await postIdea({ submissionId: SUB, text: "hi" });
     expect(logs.join("\n")).not.toContain("garbage-");
     expect(JSON.parse(logs[0] ?? "")).toEqual({ event: "idea_refused", code: "no_voter" });
+  });
+});
+
+describe("setVote", () => {
+  const IDEA = "33333333-3333-4333-8333-333333333333";
+  const db = () => state.db as queries.Db;
+  const seed = async (hiddenAt: Date | null = null) => {
+    await db()
+      .insert(ideas)
+      .values({
+        id: IDEA,
+        text: "Dark mode",
+        authorVoterId: VOTER,
+        createdAt: new Date(1),
+        hiddenAt,
+      });
+  };
+  const voteRows = () => db().select().from(votes);
+  const lastLog = () => JSON.parse(logs.at(-1) ?? "{}") as Record<string, unknown>;
+
+  it("votes, then unvotes, and returns the server's count and voted", async () => {
+    await seed();
+    expect(await setVote({ ideaId: IDEA, want: "on" })).toEqual({
+      ok: true,
+      count: 1,
+      voted: true,
+    });
+    expect(await setVote({ ideaId: IDEA, want: "off" })).toEqual({
+      ok: true,
+      count: 0,
+      voted: false,
+    });
+    expect(await voteRows()).toHaveLength(0);
+  });
+  it("repeating the wanted state, even in parallel, changes nothing more", async () => {
+    await seed();
+    const results = await Promise.all([
+      setVote({ ideaId: IDEA, want: "on" }),
+      setVote({ ideaId: IDEA, want: "on" }),
+      setVote({ ideaId: IDEA, want: "on" }),
+    ]);
+    for (const r of results) expect(r).toEqual({ ok: true, count: 1, voted: true });
+    expect(await voteRows()).toHaveLength(1);
+    expect(await setVote({ ideaId: IDEA, want: "off" })).toMatchObject({ count: 0 });
+    expect(await setVote({ ideaId: IDEA, want: "off" })).toEqual({
+      ok: true,
+      count: 0,
+      voted: false,
+    });
+  });
+  it("counts two different browsers once each", async () => {
+    await seed();
+    await setVote({ ideaId: IDEA, want: "on" });
+    state.voter = "44444444-4444-4444-8444-444444444444";
+    expect(await setVote({ ideaId: IDEA, want: "on" })).toEqual({
+      ok: true,
+      count: 2,
+      voted: true,
+    });
+    state.voter = VOTER;
+    expect(await setVote({ ideaId: IDEA, want: "off" })).toEqual({
+      ok: true,
+      count: 1,
+      voted: false,
+    });
+  });
+  it("refuses a hidden or missing idea with idea_unavailable and writes nothing", async () => {
+    await seed(new Date(5));
+    expect(await setVote({ ideaId: IDEA, want: "on" })).toEqual({
+      ok: false,
+      code: "idea_unavailable",
+    });
+    expect(await setVote({ ideaId: IDEA, want: "off" })).toEqual({
+      ok: false,
+      code: "idea_unavailable",
+    });
+    expect(await setVote({ ideaId: crypto.randomUUID(), want: "on" })).toMatchObject({
+      code: "idea_unavailable",
+    });
+    expect(await voteRows()).toHaveLength(0);
+    expect(lastLog()).toEqual({
+      event: "vote_refused",
+      code: "idea_unavailable",
+      voter8: "11111111",
+    });
+  });
+  it("answers no_voter without a valid cookie and writes nothing", async () => {
+    await seed();
+    state.voter = "garbage-cookie-value";
+    expect(await setVote({ ideaId: IDEA, want: "on" })).toEqual({ ok: false, code: "no_voter" });
+    expect(await voteRows()).toHaveLength(0);
+    expect(logs.join("\n")).not.toContain("garbage-");
+    expect(lastLog()).toEqual({ event: "vote_refused", code: "no_voter" });
+  });
+  it("answers invalid for a bad idea id or wanted state", async () => {
+    await seed();
+    for (const bad of [
+      null,
+      {},
+      { ideaId: "nope", want: "on" },
+      { ideaId: IDEA, want: "toggle" },
+      { ideaId: IDEA },
+    ])
+      expect(await setVote(bad)).toEqual({ ok: false, code: "invalid" });
+    expect(lastLog()).toEqual({ event: "vote_refused", code: "invalid", voter8: "11111111" });
+    expect(await voteRows()).toHaveLength(0);
+  });
+  it("runs checkVote after validation and before the write, and returns rate_limited", async () => {
+    await seed();
+    await setVote({ ideaId: "nope", want: "on" });
+    expect(checkVote).not.toHaveBeenCalled();
+    checkVote.mockResolvedValueOnce({ ok: false, code: "rate_limited" });
+    expect(await setVote({ ideaId: IDEA, want: "on" })).toEqual({
+      ok: false,
+      code: "rate_limited",
+    });
+    expect(checkVote).toHaveBeenCalledWith({ voterId: VOTER, ip: null });
+    expect(await voteRows()).toHaveLength(0);
+    expect(lastLog()).toEqual({ event: "vote_refused", code: "rate_limited", voter8: "11111111" });
+  });
+  it("logs a vote_set line with only event, code and voter8", async () => {
+    await seed();
+    await setVote({ ideaId: IDEA, want: "on" });
+    expect(lastLog()).toEqual({ event: "vote_set", code: "ok", voter8: "11111111" });
+  });
+  it("returns server on a database error and never logs the message or the full voter id", async () => {
+    state.db = {
+      $client: {
+        prepare: () => {
+          throw Object.assign(new Error(`failed for ${VOTER}`), { name: "D1_ERROR" });
+        },
+      },
+    };
+    expect(await setVote({ ideaId: IDEA, want: "on" })).toEqual({ ok: false, code: "server" });
+    expect(logs.join("\n")).not.toContain(VOTER);
+    expect(Object.keys(lastLog()).sort()).toEqual(["code", "errorName", "event", "voter8"]);
+    expect(lastLog()).toMatchObject({ event: "vote_failed", code: "server" });
   });
 });

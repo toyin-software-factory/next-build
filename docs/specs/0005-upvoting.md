@@ -1,7 +1,7 @@
 # 0005. Slice 2: upvoting
 
 **Date**: 2026-11-17
-**Status**: Proposed
+**Status**: In Progress
 **Feature**: scope feature 6, "Upvoting" (Slice 2)
 
 ## Summary
@@ -100,7 +100,7 @@ Toyin chose hourly vote limits per visitor for feature 9. The numbers are featur
 ### Client behaviour (fills the gaps in spec 0003's `VoteButton`)
 
 - `IdeaRow` passes `ideaId`, `count` and `voted` (from the board query) to `VoteButton`, replacing the static chip of spec 0004. The layout does not move.
-- `VoteButton` is a client component. On press, inside one `startTransition`: set the optimistic value to the wanted state, call `setVote({ ideaId, want })` with the wanted state the opposite of what is shown, then `router.refresh()` on `ok`, `idea_unavailable`, a returned `server`, or a thrown or malformed answer, and not on `no_voter`, `rate_limited` or `invalid`. The optimistic value stays until the refreshed props arrive (spec 0003).
+- `VoteButton` is a client component. On press, inside one `startTransition`: set the optimistic value to the wanted state, call `setVote({ ideaId, want })` with the wanted state the opposite of what is shown, then `router.refresh()` on `ok`, `idea_unavailable`, a returned `server`, or a thrown or malformed answer, and not on `no_voter`, `rate_limited` or `invalid`. The optimistic value stays until the refreshed props arrive (spec 0003) only for `ok` and `idea_unavailable`. For an unknown outcome (a returned `server`, a thrown call or a malformed answer) the optimistic value is dropped at once, the error is shown, and the board is refreshed once.
 - The call is wrapped in `try` and `catch`. Anything thrown, a missing result, or a result that is not one of the six shapes counts as `server`.
 - While a request is pending for a row, presses on that button are ignored and the button has `aria-disabled="true"` (not `disabled`, so focus stays).
 - On `{ ok: true }` the announcement is built from the returned `voted` ("Voted" if true, "Not voted" if false) and the returned `count`. `router.refresh()` runs on `ok`, on `idea_unavailable` and on an unknown outcome (below, which includes a returned `server`). On a returned `no_voter`, `rate_limited` or `invalid` the server refused before any write, so nothing was stored: the optimistic value is dropped with no refresh, and the code table above decides the message.

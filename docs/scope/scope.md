@@ -16,7 +16,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 3 | Data model | Foundation | in-progress |
 | 4 | Design system & UI foundation | Foundation | in-progress |
 | 5 | Suggest an idea and see the board | Slice 1 | in-progress |
-| 6 | Upvoting | Slice 2 | planned |
+| 6 | Upvoting | Slice 2 | in-progress |
 | 7 | Admin sign in | Slice 3 | in-progress |
 | 8 | Hide spam | Slice 3 | planned |
 | 9 | Abuse protection | Slice 4 | planned |
@@ -83,19 +83,19 @@ spec [0004](../specs/0004-suggest-idea-board.md) · code in `src/app/page.tsx`, 
 
 ## Slice 2: Upvoting
 
-### 6. Upvoting
+### 6. Upvoting · in-progress
 A vote button on each idea. One vote per idea per browser, tapping again removes it, and the list is sorted by votes.
 **Done when:** a browser can vote once per idea, a second tap removes the vote, the count updates right away, the same browser can't double count by repeated requests, and the list is ordered by votes (newest first on ties).
 - [x] Design it (spec): `/architect upvoting`
-- [ ] Build it: `/develop upvoting`
-  - [ ] `setVote` query and action, the `checkVote` seam
-  - [ ] Thin thread: a plain vote button, sorted list
-  - [ ] `VoteButton` behaviour and failure states
-  - [ ] Browser proof
-- [ ] Verify it: `/check verify upvoting`
-- [ ] Test it: `/test upvoting`
+- [x] Build it: `/develop upvoting`
+  - [x] `setVote` query and action, the `checkVote` seam
+  - [x] Thin thread: a plain vote button, sorted list
+  - [x] `VoteButton` behaviour and failure states
+  - [x] Browser proof
+- [x] Verify it: `/check verify upvoting`
+- [x] Test it: `/test upvoting`
 
-spec [0005](../specs/0005-upvoting.md)
+spec [0005](../specs/0005-upvoting.md) · code in `src/components/VoteButton.tsx`, `src/app/actions.ts`, `src/db/queries.ts`, `src/lib/abuse.ts`
 
 ## Slice 3: Moderation
 
