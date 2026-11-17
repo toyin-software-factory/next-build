@@ -11,7 +11,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
-| 1 | Stack & architecture | Foundation | planned |
+| 1 | Stack & architecture | Foundation | in-progress |
 | 2 | Coding standards & tooling | Foundation | planned |
 | 3 | Data model | Foundation | planned |
 | 4 | Design system & UI foundation | Foundation | planned |
@@ -28,9 +28,9 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 Pick the framework, storage and hosting setup on Cloudflare Workers (matching the portfolio), then scaffold a runnable app with CI that deploys.
 **Done when:** the stack is recorded in a spec, the empty app runs locally, CI runs lint, typecheck, test and build, and a deploy to the free `workers.dev` address works (no custom domain for now).
 - [x] Decide the stack (spec): `/architect stack & architecture`
-- [ ] Scaffold from the decision: `/develop stack & architecture`
-  - [ ] App skeleton, scripts and `wrangler.jsonc` (with Worker Previews) per the spec
-  - [ ] CI: lint, typecheck, test, build and the bundle size gate
+- [x] Scaffold from the decision: `/develop stack & architecture`
+  - [x] App skeleton, scripts and `wrangler.jsonc` (with Worker Previews) per the spec
+  - [x] CI: lint, typecheck, test, build and the bundle size gate
   - [ ] Deploy `main` to `workers.dev` and a preview link per PR
 - [ ] Verify it: `/check verify stack & architecture`
 - [ ] Test it: `/test stack & architecture`

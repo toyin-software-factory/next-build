@@ -1,0 +1,7 @@
+allowBuilds:
+  esbuild: true
+  workerd: true
+  sharp: false
+  unrs-resolver: false
+  simple-git-hooks: false
+  core-js-pure: false

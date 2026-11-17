@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Design tokens come from the design system spec (scope feature 4). */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+}
