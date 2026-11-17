@@ -1,7 +1,7 @@
 # 0004. Slice 1: suggest an idea and see the board
 
 **Date**: 2026-11-16
-**Status**: Proposed
+**Status**: In Progress
 **Feature**: scope feature 5, "Suggest an idea and see the board" (Slice 1)
 
 ## Summary
