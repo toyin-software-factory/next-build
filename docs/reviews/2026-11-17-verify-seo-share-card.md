@@ -23,7 +23,7 @@ Next: `/test seo and share card` (report below).
 
 ## Not exercised
 
-- **Lighthouse** was not run (no Lighthouse in this sandbox). The scope's "Done when" mentions a basic Lighthouse SEO and accessibility check. The tags, robots, sitemap and axe results above cover the same ground, but the score itself is unmeasured.
+- **Lighthouse** ran on prod (`https://next-build.jnr4u2.workers.dev`) with Lighthouse 12.8.2 and the Playwright Chromium, categories SEO and accessibility only. Mobile: SEO 100, accessibility 100. Desktop: SEO 100, accessibility 100. No failed audits, so nothing needed fixing. This meets the scope's "Done when" Lighthouse check.
 - How the card looks inside Slack or X was not checked. The tags are correct, but no link was pasted into those apps.
 - The `?opengraph-image.<hash>` part of the image URL comes from Next for cache busting. It is expected.
 

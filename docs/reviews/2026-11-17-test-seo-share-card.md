@@ -18,7 +18,7 @@
 ## Not covered
 
 - The real production host (`https://next-build.jnr4u2.workers.dev`) is only checked by the verify report. A local run cannot know the production build variable, so the tests check the tags agree with each other, not the exact host.
-- Lighthouse and the look of the link preview in Slack or X (see the verify report).
+- The look of the link preview in Slack or X (see the verify report). Lighthouse is done: 100 for SEO and accessibility, mobile and desktop.
 
 ## Commands
 
