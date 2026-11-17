@@ -1,8 +1,8 @@
 # Check verify: abuse protection (spec 0007)
 
-**Verdict: PASS with one open item. 16 of 17 acceptance criteria are met. AC-16 (the production check by hand) waits for Toyin's dashboard steps.**
+**Verdict: PASS. 17 of 17 acceptance criteria are met. AC-16 was checked on production after Toyin's dashboard steps (see Production check below).**
 
-Next: Toyin does the dashboard steps, then AC-16 is checked in production, then `/test abuse protection`. The feature stays `in-progress` until Michael marks it `done`.
+Next: nothing. The dashboard steps, the production check and `/test abuse protection` are all done, and the feature is `done`.
 
 ## How it was run
 
@@ -31,7 +31,7 @@ Next: Toyin does the dashboard steps, then AC-16 is checked in production, then 
 | AC-13 fresh token, reset | met | Component tests, and e2e with the script blocked: the form shows the challenge message after the wait and stores nothing. |
 | AC-14 atomic hourly | met by tests | Parallel calls with one slot left allow exactly one, and a refusal writes nothing. |
 | AC-15 table stays small | met by tests | Cleanup keeps the current and previous hour. |
-| AC-16 production check | **open** | Needs the dashboard steps. See the PR. |
+| AC-16 production check | met | Checked on production on 2026-11-17. See Production check below. |
 | AC-17 retry uses no slot | met by tests | `actions.test.ts`. |
 
 ## Specced surfaces
@@ -48,3 +48,14 @@ All built: `rate_events` and its migration (`0001_bitter_tusk.sql`), `checkPost`
 ## Files ticked
 
 Scope: feature 9 status `in-progress`, the first four Build milestones and `Verify it` ticked. The dashboard milestone, `Build it` and `Test it` stay open. Spec 0007 status is `In Progress`.
+
+## Production check (2026-11-17, Michael, AC-16)
+
+Run on `https://next-build.jnr4u2.workers.dev` after Toyin finished the spec 0007 dashboard steps (Turnstile keys, `ABUSE_SALT`, `NEXT_PUBLIC_SITE_URL`) and the next deploy rebuilt the site.
+
+- The page carries the real Turnstile site key (`0x4…`, not a test key) and loads `challenges.cloudflare.com/turnstile/v0/api.js`. The CSP allows it in `script-src` and `frame-src`.
+- Toyin, in a normal browser: a normal post appeared on the board. A quick run of posts was stopped with the limit message. The test ideas were then hidden from `/admin` and left the public board (which also checks feature 8 on production). Toyin reported "All works" with no errors.
+- A post with no token is refused on production: Michael replayed the `postIdea` server action (`Next-Action` id from the live JS bundle, a fresh voter cookie, a new `submissionId`, no `token`). The answer was `{"ok":false,"code":"challenge_failed"}`, and the idea text did not appear on the board.
+- Toyin noticed that an incognito window can vote again. This is expected: votes are one per browser by design (anonymous, no sign up), and the per address hourly cap limits it. Toyin was asked whether to tighten it (thread 1794920460.404369).
+
+Result: PASS.

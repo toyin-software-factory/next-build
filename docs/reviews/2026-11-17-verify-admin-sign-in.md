@@ -21,3 +21,14 @@ Ran via `pnpm test:e2e` (the real Workers runtime from `pnpm preview`, local D1,
 | AC-13 | blocked | Needs the dashboard steps with Toyin and a production deploy. |
 
 Worth knowing: a trailing slash (`/admin/`) gets a 308 redirect to `/admin` from Next before the middleware runs, and `/admin` then answers 403. The redirect carries no data. `wrangler --var` strips quotes from JSON values, so the e2e key set is passed as base64 (`readLocalKeys` accepts both).
+
+## After deploy (2026-11-17, Michael)
+
+Run against production (`https://next-build.jnr4u2.workers.dev`) after Toyin finished the Cloudflare Access dashboard steps and set the three Access secrets.
+
+| AC | Verdict | Evidence |
+| --- | --- | --- |
+| AC-13 | met | With no login, `/admin`, `/admin/`, `/%61dmin`, `/admin?_rsc=x` and `/admin` with `RSC: 1` each answer 302 to `toyin.cloudflareaccess.com/cdn-cgi/access/login/next-build`; no idea text in any response. The board `/` answers 200. Toyin signed in and saw the admin page ("Admin · 0 ideas, 0 hidden."). A first attempt showed the refusal page with reason `not_configured`; the cause was the `ACCESS_TEAM_DOMAIN` value format, fixed in the dashboard, no code change. |
+| AC-10 | partly met | The deployed preview (`fsd-t21-test-abuse-protection`) answers 403 on `/admin` with `X-Forwarded-Host: localhost` and a junk `Cf-Access-Jwt-Assertion`. The fuller smoke (spoofed `Host` plus a token from `pnpm access:token`) is FSD-T23. |
+
+Result: PASS. Feature 7 Build and Verify are done; Test is FSD-T23.

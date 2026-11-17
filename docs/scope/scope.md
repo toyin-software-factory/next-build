@@ -19,7 +19,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 6 | Upvoting | Slice 2 | done |
 | 7 | Admin sign in | Slice 3 | in-progress |
 | 8 | Hide spam | Slice 3 | in-progress |
-| 9 | Abuse protection | Slice 4 | in-progress |
+| 9 | Abuse protection | Slice 4 | done |
 | 10 | SEO and share card | Slice 4 | done |
 
 ## Foundations
@@ -103,12 +103,12 @@ spec [0005](../specs/0005-upvoting.md) · code in `src/components/VoteButton.tsx
 A private admin area only Toyin can reach.
 **Done when:** `/admin` and every admin action are refused for anyone but Toyin, checked on the server.
 - [x] Design it (spec): `/architect admin sign in`
-- [ ] Build it: `/develop admin sign in`
+- [x] Build it: `/develop admin sign in`
   - [x] Token verifier and key cache (`src/lib/access.ts`)
   - [x] `requireAdmin()` proof, admin queries and the `setHidden` action
   - [x] Middleware check and refusal page, local test token
-  - [ ] Thin `/admin` page behind the check, deploy, dashboard steps with Toyin
-- [ ] Verify it: `/check verify admin sign in`
+  - [x] Thin `/admin` page behind the check, deploy, dashboard steps with Toyin
+- [x] Verify it: `/check verify admin sign in`
 - [ ] Test it: `/test admin sign in`
 
 spec [0006](../specs/0006-admin-sign-in.md)
@@ -124,16 +124,16 @@ An admin page listing every idea, visible and hidden, with Hide and Unhide.
 
 ## Slice 4: Hardening and polish
 
-### 9. Abuse protection · in-progress
+### 9. Abuse protection · done
 Keep counts honest and the board clean without sign up: per visitor limits on posting and voting, and an invisible bot check on posting.
 **Done when:** bursts of posts or votes from one visitor are refused with a friendly message, and scripted posts without the bot check pass are rejected.
 - [x] Design it (spec): `/architect abuse protection`
-- [ ] Build it: `/develop abuse protection`
+- [x] Build it: `/develop abuse protection`
   - [x] `rate_events` table, migration and hourly limit queries
   - [x] `checkPost` and `checkVote` with burst and hourly limits
   - [x] Turnstile check on the server
   - [x] Turnstile widget in the post form
-  - [ ] Dashboard steps with Toyin and the production check
+  - [x] Dashboard steps with Toyin and the production check
 - [x] Verify it: `/check verify abuse protection`
 - [x] Test it: `/test abuse protection`
 
