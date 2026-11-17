@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { axe } from "vitest-axe";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+vi.mock("@/app/actions", () => ({ setVote: vi.fn(), postIdea: vi.fn() }));
 
 import { CharacterCounter } from "./CharacterCounter";
 import { IdeaList } from "./IdeaList";
