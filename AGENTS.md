@@ -25,6 +25,7 @@ pnpm lint && pnpm format:check && pnpm typecheck
 pnpm test              # Vitest (src/**/*.test.ts)
 pnpm test:e2e          # Playwright + axe, desktop and mobile, runs pnpm preview
 pnpm build:worker      # opennextjs-cloudflare build (the real build gate)
+pnpm access:token      # signs a local admin token for the Cf-Access-Jwt-Assertion header (needs ACCESS_LOCAL_JWKS key, spec 0006)
 pnpm db:generate       # after editing src/db/schema.ts; commit drizzle/
 pnpm db:migrate:local    # apply migrations to the local D1
 pnpm db:migrate:remote   # production D1 (Workers Builds runs it on deploy)
@@ -34,7 +35,7 @@ pnpm db:reset:preview  # drops app tables in the shared preview DB; owner of the
 
 ## Layout
 
-`src/app` routes · `src/components` shared UI · `src/lib` env, CSP, helpers · `src/db` schema and `getDb()` · `src/middleware.ts` nonce CSP, and (from slice 1, spec 0002) the `nb_voter` cookie · `drizzle/` generated SQL (never edit by hand) · `tests/e2e` Playwright · `docs/` scope, specs, `feature-map.md` (update when a route or feature changes) · `scripts/` · `wrangler.jsonc` (has a `previews` block) · `wrangler.preview-migrations.jsonc`.
+`src/app` routes · `src/components` shared UI · `src/lib` env, CSP, helpers · `src/db` schema and `getDb()` · `src/middleware.ts` nonce CSP, the `nb_voter` cookie (spec 0002) and the `/admin` 403 gate (spec 0006, checks in `src/lib/access.ts`, every admin action calls `requireAdmin` first) · `drizzle/` generated SQL (never edit by hand) · `tests/e2e` Playwright · `docs/` scope, specs, `feature-map.md` (update when a route or feature changes) · `scripts/` · `wrangler.jsonc` (has a `previews` block) · `wrangler.preview-migrations.jsonc`.
 
 ## Rules
 
@@ -45,7 +46,7 @@ pnpm db:reset:preview  # drops app tables in the shared preview DB; owner of the
 - Functional style: pure functions, immutable data, side effects at the edges, explicit error returns for expected failures.
 - Database: only `src/db/client.ts` touches D1, server only (`import "server-only"`). Pages that read D1 are `force-dynamic`.
 - D1 schema: one open schema PR at a time (the lead sequences them). Migrations only add (new tables, new nullable columns) until launch. Run `pnpm db:generate` and commit `drizzle/`; CI fails on drift.
-- Config names only, never values, in the repo. Names are in `.env.example` and `.dev.vars.example`: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXTJS_ENV`, `APP_ENV`, `ACCESS_AUD`, `ADMIN_EMAIL`, `TURNSTILE_SECRET_KEY`. Secrets go in `.dev.vars` (git ignored) or Cloudflare.
+- Config names only, never values, in the repo. Names are in `.env.example` and `.dev.vars.example`: `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXTJS_ENV`, `APP_ENV`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `ADMIN_EMAIL`, `ACCESS_LOCAL_JWKS`, `TURNSTILE_SECRET_KEY`. Secrets go in `.dev.vars` (git ignored) or Cloudflare.
 - Logs never carry idea text, the full voter id or error messages. `logPost` and `logVote` add `voter8` only when `isVoterId()` passed (`src/lib/log.ts`); vote logs hold only `event`, `code`, `voter8` and `errorName`.
 - Tests focus on logic that matters (vote counts, one vote per browser, hiding). Vitest sits next to the code. Playwright covers pages, headers and accessibility.
 - Checks before commit: simple-git-hooks runs lint-staged (ESLint and Prettier on staged files). Keep `pnpm lint`, `format:check`, `typecheck` and `test` green.

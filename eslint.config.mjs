@@ -17,6 +17,43 @@ export default defineConfig([
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
     },
   },
+  // Admin proof (spec 0006): only the admin route and the access module may import the admin
+  // queries, and only src/lib/access.ts may build an Admin with a cast.
+  {
+    files: ["**/*.{ts,tsx,mts}"],
+    ignores: ["src/app/admin/**", "src/lib/access.ts", "src/db/admin-queries.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/admin-queries", "**/admin-queries.ts"],
+              message:
+                "Admin queries are only for src/app/admin and src/lib/access.ts (spec 0006). Call them from an admin server action.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["**/*.{ts,tsx,mts}"],
+    ignores: ["src/lib/access.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "TSAsExpression[typeAnnotation.typeName.name='Admin']",
+          message: "Only requireAdmin() in src/lib/access.ts may create an Admin (spec 0006).",
+        },
+        {
+          selector: "TSTypeAssertion[typeAnnotation.typeName.name='Admin']",
+          message: "Only requireAdmin() in src/lib/access.ts may create an Admin (spec 0006).",
+        },
+      ],
+    },
+  },
   globalIgnores([
     ".next/**",
     ".open-next/**",

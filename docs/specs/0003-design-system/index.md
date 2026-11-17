@@ -281,6 +281,9 @@ Every user facing string lives in one file, `src/lib/copy.ts`, so wording change
 | Admin empty | No ideas yet. New ideas will show up here. |
 | Admin load error | We couldn't load the ideas. Try again. |
 | Admin heading and count | Admin, N hidden |
+| Admin refusal (403 page and page content) | This page is only for the site admin. |
+| Admin sign in ended | Your admin sign in has ended. Reload this page to sign in again. |
+| Reload button | Reload |
 
 ### Focus and keyboard behaviour
 

@@ -1,7 +1,7 @@
 # 0006. Slice 3: admin sign in
 
 **Date**: 2026-11-17
-**Status**: Proposed
+**Status**: In Progress
 **Feature**: scope feature 7, "Admin sign in" (Slice 3), plus the shape of the feature 8 "Hide spam" page it guards
 
 ## Summary
