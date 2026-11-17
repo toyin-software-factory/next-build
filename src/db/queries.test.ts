@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+// @vitest-environment node
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./client", () => ({
   getDb: () => {
@@ -8,7 +9,7 @@ vi.mock("./client", () => ({
 
 import { BOARD_LIMIT, getBoard, insertIdea, type Db } from "./queries";
 import { ideas, votes } from "./schema";
-import { createTestDb } from "./test-db";
+import { createTestDb, disposeTestDb } from "./test-db";
 
 const V1 = "11111111-1111-4111-8111-111111111111";
 const V2 = "22222222-2222-4222-8222-222222222222";
@@ -22,14 +23,19 @@ const idea = (id: string, createdAt: number, text = id, hiddenAt: number | null 
   hiddenAt: hiddenAt ? new Date(hiddenAt) : null,
 });
 
-beforeEach(() => {
-  db = createTestDb();
+beforeEach(async () => {
+  db = await createTestDb();
 });
+
+afterAll(disposeTestDb);
 
 describe("getBoard", () => {
   it("returns 500 of 501 ideas", async () => {
-    for (let i = 0; i < BOARD_LIMIT + 1; i++)
-      await insertIdea(idea(`i${String(i).padStart(4, "0")}`, i), db);
+    const all = Array.from({ length: BOARD_LIMIT + 1 }, (_, i) =>
+      idea(`i${String(i).padStart(4, "0")}`, i),
+    );
+    // D1 allows 100 bound values per statement, so insert in small chunks.
+    for (let i = 0; i < all.length; i += 10) await db.insert(ideas).values(all.slice(i, i + 10));
     expect(await getBoard(V1, db)).toHaveLength(BOARD_LIMIT);
   });
 
@@ -74,5 +80,19 @@ describe("insertIdea", () => {
     await insertIdea(idea("a", 1, "same"), db);
     await insertIdea(idea("b", 2, "same"), db);
     expect(await db.select().from(ideas)).toHaveLength(2);
+  });
+});
+
+describe("votes", () => {
+  it("refuses a second vote by the same voter on the same idea (primary key)", async () => {
+    await insertIdea(idea("a", 1), db);
+    await db.insert(votes).values({ ideaId: "a", voterId: V1, createdAt: new Date(1) });
+    await expect(
+      db.insert(votes).values({ ideaId: "a", voterId: V1, createdAt: new Date(2) }),
+    ).rejects.toThrow();
+    expect(await db.select().from(votes)).toHaveLength(1);
+    // A different voter on the same idea is fine.
+    await db.insert(votes).values({ ideaId: "a", voterId: V2, createdAt: new Date(3) });
+    expect(await db.select().from(votes)).toHaveLength(2);
   });
 });

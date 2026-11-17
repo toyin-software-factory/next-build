@@ -48,6 +48,19 @@ describe("IdeaForm", () => {
     expect(screen.getByLabelText(/idea/i)).toHaveAttribute("aria-invalid", "true");
   });
 
+  it("announces a refused submit in the status region", async () => {
+    const region = document.createElement("div");
+    region.id = "status";
+    document.body.appendChild(region);
+    postIdea.mockResolvedValue({ ok: false, code: "empty" });
+    render(<IdeaForm />);
+    type(" ", { key: "Enter" });
+    await waitFor(() => {
+      expect(region.textContent).not.toBe("");
+    });
+    region.remove();
+  });
+
   it("reuses the submission id when retrying the same text after a failure", async () => {
     postIdea
       .mockResolvedValueOnce({ ok: false, code: "server" })

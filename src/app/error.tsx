@@ -6,12 +6,7 @@ import { ErrorMessage } from "@/components/ErrorMessage";
 import { COPY } from "@/lib/copy";
 
 /** The board failed to render. Try again re-renders it; after a success, focus moves to the list. */
-export default function BoardError({
-  unstable_retry,
-}: {
-  error: Error;
-  unstable_retry: () => void;
-}) {
+export default function BoardError({ retry }: { error: Error; retry: () => void }) {
   const retried = useRef(false);
   useEffect(
     () => () => {
@@ -30,7 +25,7 @@ export default function BoardError({
       message={COPY.boardError}
       onRetry={() => {
         retried.current = true;
-        unstable_retry();
+        retry();
       }}
     />
   );

@@ -6,6 +6,10 @@ describe("normalizeIdea", () => {
   it("trims and collapses whitespace and new lines", () => {
     expect(normalizeIdea("  a \n\n b\t c  ")).toBe("a b c");
   });
+  it("drops NUL so the length matches what SQLite stores", () => {
+    expect(normalizeIdea("a\u0000b")).toBe("ab");
+    expect(normalizeIdea("\u0000")).toBe("");
+  });
   it("composes to NFC", () => {
     expect(normalizeIdea("é")).toBe("é");
   });

@@ -88,7 +88,9 @@ export function IdeaForm() {
         announce(COPY.added);
         router.refresh();
       } else {
-        setFailure({ code: result.code, over: result.over ?? 0 });
+        const over = result.over ?? 0;
+        setFailure({ code: result.code, over });
+        if (FIELD_CODES.includes(result.code)) announce(POST_ERROR_COPY[result.code](over));
       }
     } finally {
       busy.current = false;

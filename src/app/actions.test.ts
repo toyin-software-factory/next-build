@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+// @vitest-environment node
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted((): { voter: string | null; db: unknown } => ({ voter: null, db: null }));
 vi.mock("next/headers", () => ({
@@ -11,7 +12,7 @@ vi.mock("next/headers", () => ({
 }));
 vi.mock("@/db/client", () => ({ getDb: () => state.db }));
 
-import { createTestDb } from "@/db/test-db";
+import { createTestDb, disposeTestDb } from "@/db/test-db";
 import { ideas } from "@/db/schema";
 import * as queries from "@/db/queries";
 
@@ -21,12 +22,14 @@ const VOTER = "11111111-1111-4111-8111-111111111111";
 const SUB = "22222222-2222-4222-8222-222222222222";
 let logs: string[];
 
-beforeEach(() => {
+beforeEach(async () => {
   state.voter = VOTER;
   logs = [];
   vi.spyOn(console, "log").mockImplementation((line: string) => void logs.push(line));
-  state.db = createTestDb();
+  state.db = await createTestDb();
 });
+
+afterAll(disposeTestDb);
 
 const rows = () => (state.db as queries.Db).select().from(ideas);
 
