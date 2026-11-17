@@ -58,3 +58,26 @@ test("hide removes an idea from the public board and unhide brings it back", asy
   await page.goto("/");
   await expect(page.getByRole("list").getByText(text)).toBeVisible();
 });
+
+// The ended sign in path in a real browser: the action call itself fails (as it does when Access
+// has dropped the session), so the row keeps its old state and offers a Reload.
+test("a failed hide call shows the sign in ended message and changes nothing", async ({ page }) => {
+  const text = unique("Session idea");
+  await postIdea(page, text);
+
+  await page.goto("/admin");
+  const row = page.getByRole("row").filter({ hasText: text });
+  const item = page.getByRole("listitem").filter({ hasText: text });
+  const rowOrItem = (await row.count()) > 0 ? row : item;
+
+  await page.route("**/admin", (route) =>
+    route.request().method() === "POST" ? route.abort("failed") : route.continue(),
+  );
+  await rowOrItem.getByRole("button", { name: "Hide idea" }).click();
+  await expect(page.getByText("Your admin sign in has ended.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reload" })).toBeVisible();
+  await expect(rowOrItem.getByRole("button", { name: "Hide idea" })).toBeVisible();
+
+  await page.goto("/");
+  await expect(page.getByRole("list").getByText(text)).toBeVisible();
+});
