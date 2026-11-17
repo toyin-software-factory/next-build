@@ -32,6 +32,10 @@ describe("design token lint rule", () => {
     ["oklch()", `export const a = "oklch(0.7 0.1 200)";`],
     ["an arbitrary colour class", `export const a = "text-[color:red]";`],
     ["a template literal", "export const a = (n: string) => `${n} border-[#abc]`;"],
+    [
+      "hex colours followed by a Tailwind underscore",
+      `export const a = "bg-[linear-gradient(90deg,#fff_0%,#000_100%)]";`,
+    ],
     ["an inline style value", `export const A = () => <p style={{ color: "#123456" }}>x</p>;`],
   ])("fires on %s in a component", async (_name, code) => {
     expect((await colourErrors(code, COMPONENT)).length).toBeGreaterThan(0);
