@@ -87,10 +87,19 @@ A vote button on each idea. One vote per idea per browser, tapping again removes
 
 ## Slice 3: Moderation
 
-### 7. Admin sign in · needs a decision
+### 7. Admin sign in
 A private admin area only Toyin can reach.
 **Done when:** `/admin` and every admin action are refused for anyone but Toyin, checked on the server.
-- [ ] Design it (spec): `/architect admin sign in`
+- [x] Design it (spec): `/architect admin sign in`
+- [ ] Build it: `/develop admin sign in`
+  - [ ] Token verifier and key cache (`src/lib/access.ts`)
+  - [ ] `requireAdmin()` proof, admin queries and the `setHidden` action
+  - [ ] Middleware check and refusal page, local test token
+  - [ ] Thin `/admin` page behind the check, deploy, dashboard steps with Toyin
+- [ ] Verify it: `/check verify admin sign in`
+- [ ] Test it: `/test admin sign in`
+
+spec [0006](../specs/0006-admin-sign-in.md)
 
 ### 8. Hide spam
 An admin page listing every idea, visible and hidden, with Hide and Unhide.
@@ -101,10 +110,20 @@ An admin page listing every idea, visible and hidden, with Hide and Unhide.
 
 ## Slice 4: Hardening and polish
 
-### 9. Abuse protection · needs a decision
+### 9. Abuse protection
 Keep counts honest and the board clean without sign up: per visitor limits on posting and voting, and an invisible bot check on posting.
 **Done when:** bursts of posts or votes from one visitor are refused with a friendly message, and scripted posts without the bot check pass are rejected.
-- [ ] Design it (spec): `/architect abuse protection`
+- [x] Design it (spec): `/architect abuse protection`
+- [ ] Build it: `/develop abuse protection`
+  - [ ] `rate_events` table, migration and hourly limit queries
+  - [ ] `checkPost` and `checkVote` with burst and hourly limits
+  - [ ] Turnstile check on the server
+  - [ ] Turnstile widget in the post form
+  - [ ] Dashboard steps with Toyin and the production check
+- [ ] Verify it: `/check verify abuse protection`
+- [ ] Test it: `/test abuse protection`
+
+spec [0007](../specs/0007-abuse-protection.md)
 
 ### 10. SEO and share card
 Title, description and a share image so links look good in Slack, X and search.
