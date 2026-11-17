@@ -24,6 +24,7 @@ export function isAdminPath(pathname: string): boolean {
 /**
  * The refusal page as one small HTML string for the middleware (no React in middleware). The nonce
  * lets the one inline style pass the page's CSP. No scripts, no links, no data.
+ * The raw hex values are deliberate: this page is served without globals.css, so it cannot use tokens.
  */
 export function refusalHtml(nonce: string): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="robots" content="noindex"><title>Admin only</title><style nonce="${nonce}">body{margin:0;min-height:100vh;display:grid;place-items:center;padding:1rem;font:1rem/1.5 ui-sans-serif,system-ui,sans-serif;background:#fafafa;color:#171717}@media(prefers-color-scheme:dark){body{background:#0a0a0a;color:#fafafa}}main{max-width:32rem}h1{font-size:1.25rem;line-height:1.75rem;margin:0}</style></head><body><main><h1>${ADMIN_REFUSAL_TEXT}</h1></main></body></html>`;
