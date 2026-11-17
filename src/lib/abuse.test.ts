@@ -8,6 +8,9 @@ import type { Db } from "@/db/queries";
 
 import { LIMITS, addressKeyText, checkPost, checkVote, ipKey, type Limiter } from "./abuse";
 
+// These tests write to a real local D1. Under a loaded machine (the whole suite in parallel) the default 5 seconds is too tight.
+vi.setConfig({ testTimeout: 30_000 });
+
 const SALT = "test-salt-for-unit-tests-0000";
 const NOW = 1_800_000_000_000;
 const V = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
