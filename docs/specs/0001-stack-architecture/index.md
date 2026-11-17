@@ -87,7 +87,7 @@ wrangler.jsonc, open-next.config.ts, next.config.ts, drizzle.config.ts, .nvmrc
 
 **Production vs preview (`APP_ENV`)**: resolved at build time in `next.config.ts` exactly like the portfolio (explicit `APP_ENV`, else `production` when `WORKERS_CI_BRANCH` is `main`, else `preview`), read only through `getAppEnv()` in `src/lib/env.ts`. Outside production, `getAppEnv()` makes the app use Cloudflare's published Turnstile test keys (they are public, so they live in code), so previews, local runs and CI never need real Turnstile values. Real keys are only set for production.
 
-**Admin access outside production**: deployed previews keep the Access token check. Preview URLs are protected by their own Access application (the dashboard's preview URL protection), which has its own audience tag. Previews get that tag as their own `ACCESS_AUD` through the preview base config secret (`wrangler preview base-config secret put ACCESS_AUD`), not a secret on one preview. Base config changes only apply to previews created afterwards, so after changing it, also update each existing preview with `wrangler preview secret put ACCESS_AUD --name <preview>` (redeploying alone does not apply it). so a preview validates tokens against the preview application only, and production keeps the production tag. Locally and in CI there is no Access in front, so the admin sign in spec (scope feature 7) decides how tests reach `/admin`; it must never be possible on a deployed Worker. If `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD` is missing, `/admin` fails closed (403), never open.
+**Admin access outside production**: deployed previews keep the Access token check (spec 0006). Previews answer 403 on `/admin` for everyone, unless the optional preview Access application from spec 0006 (dashboard step 8) exists. If it exists, it has its own audience tag, which previews get as their own `ACCESS_AUD` through the preview base config secret (`wrangler preview base-config secret put ACCESS_AUD`). Base config changes only apply to previews created afterwards, so after changing it, also update each existing preview with `wrangler preview secret put ACCESS_AUD --name <preview>` (redeploying alone does not apply it). A preview then validates tokens against the preview application only, and production keeps the production tag. Locally and in CI there is no Access in front: spec 0006 lets tests reach `/admin` with a locally signed token that is honoured only when `getAppEnv()` is not `production` and the request has no `cf-ray` header, so it is never possible on a deployed Worker. If `ACCESS_TEAM_DOMAIN` or `ACCESS_AUD` is missing, `/admin` fails closed (403), never open.
 
 ## Configuration required
 
@@ -96,7 +96,7 @@ Names only, never values in the repo.
 | Name | Kind | Where it is set |
 |---|---|---|
 | `DB` | D1 binding (database ids are not secret) | `wrangler.jsonc`; preview id per the preview rule above |
-| `ACCESS_TEAM_DOMAIN` | Plain var, e.g. `<team>.cloudflareaccess.com` | `wrangler.jsonc` `vars` |
+| `ACCESS_TEAM_DOMAIN` | Secret, e.g. `<team>.cloudflareaccess.com` | Cloudflare dashboard secret (production and previews), `.dev.vars` locally; no `wrangler.jsonc` var (spec 0006 step 6) |
 | `ACCESS_AUD` | Worker secret (Access application audience tag) | Production: Worker secret with the production application's tag. Previews: preview secret with the preview application's tag. Local: `.dev.vars`. Unset means `/admin` returns 403 |
 | `ADMIN_EMAIL` | Worker secret (the one email allowed into admin) | Production and preview secrets. Unset means `/admin` returns 403 |
 | `TURNSTILE_SECRET_KEY` | Worker secret, used only when `APP_ENV` is `production` | Cloudflare secret. Elsewhere the code uses the public test secret |
@@ -144,7 +144,7 @@ Required checks on `main` (a Toyin action, added after the scaffold): `ci` and t
 ## Follow-up
 
 - [ ] Toyin action at scaffold time: create the D1 databases `next-build` and `next-build-preview` and share both ids; connect the GitHub repo through Workers Builds with the settings above (token with D1 edit); enable preview URLs; share the account's `workers.dev` subdomain so `NEXT_PUBLIC_SITE_URL` can be set.
-- [ ] Toyin action at admin sign in time (feature 7): create the Access application for `/admin` on the `workers.dev` hostname, allow only Toyin's email, protect preview URLs, add `ACCESS_AUD` (production and preview tags) and `ADMIN_EMAIL` as secrets, and share the team domain for `ACCESS_TEAM_DOMAIN`.
+- [ ] Toyin action at admin sign in time (feature 7): follow the dashboard steps in spec 0006. Create the Access application for `/admin` (paths `admin` and `admin/*`) allowing only Toyin's email, add `ACCESS_AUD` and `ADMIN_EMAIL` as secrets, and `ACCESS_TEAM_DOMAIN` as secrets. The preview Access application is optional: without it, `/admin` on previews is 403 for everyone.
 - [ ] Toyin action at abuse protection time (feature 9): create the Turnstile widget and add its keys.
 - [ ] Toyin action after scaffold: add `ci` and the Workers Builds check as required checks on `main`.
 - [ ] If the bundle size gate fails on the Free plan, Toyin decides on Workers Paid. The scaffold PR reports the measured size.
