@@ -54,11 +54,15 @@ export function HideButton({
           }, 0);
         }
       } catch {
-        // Access answers an ended session with a redirect fetch cannot follow, so it throws.
-        setError({ kind: "ended" });
+        // Access answers an ended session with a redirect fetch cannot follow, so it throws. A
+        // browser that is offline throws too, and that one can simply be retried.
+        setError(navigator.onLine ? { kind: "ended" } : { kind: "failed", want });
       } finally {
         inFlight.current = false;
-        button.current?.focus();
+        // Take focus back only when it fell to the page (the Try again control was removed), never
+        // from a control the user has already moved to (spec 0003 AC-9).
+        const active = document.activeElement;
+        if (active === null || active === document.body) button.current?.focus();
       }
     });
   };

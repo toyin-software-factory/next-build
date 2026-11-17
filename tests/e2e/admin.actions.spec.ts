@@ -77,14 +77,17 @@ test("setHidden posted to / with no token does nothing and writes nothing", asyn
   await page.getByLabel("Your idea").press("Enter");
   await expect(page.getByRole("list").getByText(text)).toBeVisible();
 
-  // Any uuid works: the guard answers before the input is even parsed.
+  // The seeded idea's real id, read from the board row (`idea-<id>-text`).
+  const rowId = await page.getByText(text).first().getAttribute("id");
+  const ideaId = rowId?.match(/^idea-(.+)-text$/)?.[1];
+  expect(ideaId).toBeDefined();
   const response = await request.post("/", {
     headers: {
       Origin: "http://localhost:8787",
       "Next-Action": setHiddenActionId(),
       "Content-Type": "text/plain;charset=UTF-8",
     },
-    data: JSON.stringify([{ ideaId: crypto.randomUUID(), hidden: true }]),
+    data: JSON.stringify([{ ideaId, hidden: true }]),
     maxRedirects: 0,
   });
   // Next does not run an action from another route's bundle (it answers `{}`); if a future version

@@ -99,4 +99,36 @@ describe("HideButton", () => {
     expect(screen.getByRole("button", { name: "Reload" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
   });
+
+  it("offers Try again, not the sign in ended message, when a thrown call happens offline", async () => {
+    const online = vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+    setHidden.mockRejectedValue(new TypeError("Failed to fetch"));
+    fireEvent.click(setup());
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't hide this idea.");
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reload" })).toBeNull();
+    online.mockRestore();
+  });
+
+  it("does not pull focus from another control when the request ends", async () => {
+    let finish: () => void = () => undefined;
+    setHidden.mockReturnValue(
+      new Promise((resolve) => {
+        finish = () => {
+          resolve({ ok: true, hidden: true });
+        };
+      }),
+    );
+    const button = setup();
+    const other = document.createElement("button");
+    document.body.appendChild(other);
+    fireEvent.click(button);
+    other.focus();
+    finish();
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalled();
+    });
+    expect(document.activeElement).toBe(other);
+    other.remove();
+  });
 });
