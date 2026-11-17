@@ -103,12 +103,12 @@ spec [0005](../specs/0005-upvoting.md) · code in `src/components/VoteButton.tsx
 A private admin area only Toyin can reach.
 **Done when:** `/admin` and every admin action are refused for anyone but Toyin, checked on the server.
 - [x] Design it (spec): `/architect admin sign in`
-- [ ] Build it: `/develop admin sign in`
+- [x] Build it: `/develop admin sign in`
   - [x] Token verifier and key cache (`src/lib/access.ts`)
   - [x] `requireAdmin()` proof, admin queries and the `setHidden` action
   - [x] Middleware check and refusal page, local test token
-  - [ ] Thin `/admin` page behind the check, deploy, dashboard steps with Toyin
-- [ ] Verify it: `/check verify admin sign in`
+  - [x] Thin `/admin` page behind the check, deploy, dashboard steps with Toyin
+- [x] Verify it: `/check verify admin sign in`
 - [ ] Test it: `/test admin sign in`
 
 spec [0006](../specs/0006-admin-sign-in.md)
