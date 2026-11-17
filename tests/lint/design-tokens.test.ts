@@ -52,6 +52,24 @@ describe("design token lint rule", () => {
     expect(await colourErrors(code, COMPONENT)).toEqual([]);
   });
 
+  it("passes on a colour type hint that points at a token variable (not a raw colour)", async () => {
+    const code = `export const a = "text-[color:var(--surface)] bg-[color:var(--accent)]";`;
+    expect(await colourErrors(code, COMPONENT)).toEqual([]);
+  });
+
+  it("passes on fragment links and DOM selectors that look like hex colours", async () => {
+    const code = `
+      export const A = () => <a href="#abc">skip</a>;
+      export const B = () => <label htmlFor="#fade" id="#add">x</label>;
+      export const el = () => document.querySelector("#abc");
+    `;
+    expect(await colourErrors(code, COMPONENT)).toEqual([]);
+  });
+
+  it("still fires on a colour type hint with a raw value", async () => {
+    expect(await colourErrors(`export const a = "text-[color:red]";`, COMPONENT)).not.toEqual([]);
+  });
+
   it("does not apply to globals.css values or to test files", async () => {
     expect(
       await colourErrors(`export const a = "#fff";`, "src/components/Sample.test.tsx"),
