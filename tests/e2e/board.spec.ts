@@ -28,7 +28,7 @@ test("an empty idea is refused with a message and nothing is stored", async ({ p
   await page.goto("/");
   await page.getByLabel("Your idea").fill("   ");
   await page.getByRole("button", { name: "Add idea" }).click();
-  await expect(page.getByText("Write an idea first.")).toBeVisible();
+  await expect(page.locator("p[id$='-error']", { hasText: "Write an idea first." })).toBeVisible();
   await expect(page.getByLabel("Your idea")).toHaveAttribute("aria-invalid", "true");
 });
 
@@ -40,7 +40,9 @@ test("an idea over 140 characters is refused, with the text kept and the count s
   await page.getByLabel("Your idea").fill(text);
   await expect(page.getByText("5 over the limit")).toBeVisible();
   await page.getByRole("button", { name: "Add idea" }).click();
-  await expect(page.getByText(/Ideas can be up to 140 characters/)).toBeVisible();
+  await expect(
+    page.locator("p[id$='-error']", { hasText: /Ideas can be up to 140 characters/ }),
+  ).toBeVisible();
   await expect(page.getByLabel("Your idea")).toHaveValue(text);
 });
 
@@ -77,7 +79,9 @@ for (const scheme of ["light", "dark"] as const) {
     await page.goto("/");
     await page.getByLabel("Your idea").fill("y".repeat(150));
     await page.getByRole("button", { name: "Add idea" }).click();
-    await expect(page.getByText(/Ideas can be up to 140/)).toBeVisible();
+    await expect(
+      page.locator("p[id$='-error']", { hasText: /Ideas can be up to 140/ }),
+    ).toBeVisible();
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
   });
