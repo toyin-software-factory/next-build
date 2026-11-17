@@ -12,7 +12,7 @@ import { verifyTurnstile } from "./turnstile";
 /** The numbers in one place (spec 0007, D3). Burst limits live in wrangler.jsonc. */
 export const LIMITS = {
   post: { voter: 5, ip: 15 },
-  vote: { voter: 60, ip: 150 },
+  vote: { voter: 20, ip: 20 },
 } as const;
 
 type Kind = "post" | "vote";
