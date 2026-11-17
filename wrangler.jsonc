@@ -1,0 +1,66 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "next-build",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "next-build",
+      "database_id": "684985c3-e937-4b24-8e33-cda0ee39b87c",
+      "migrations_dir": "drizzle",
+    },
+  ],
+  // Best effort flood control for posting and voting (per Cloudflare location).
+  // The limits are provisional: scope feature 9 sets them.
+  "ratelimits": [
+    { "name": "POST_RATE_LIMITER", "namespace_id": "2001", "simple": { "limit": 5, "period": 60 } },
+    {
+      "name": "VOTE_RATE_LIMITER",
+      "namespace_id": "2002",
+      "simple": { "limit": 60, "period": 60 },
+    },
+  ],
+  // Plain vars only. Secrets (ACCESS_AUD, ADMIN_EMAIL, TURNSTILE_SECRET_KEY) are set in
+  // Cloudflare and, locally, in .dev.vars.
+  "vars": {
+    // TODO(FSD-T01): placeholder. Replace with `<team>.cloudflareaccess.com` at admin sign in time (feature 7).
+    "ACCESS_TEAM_DOMAIN": "",
+  },
+  // Worker Previews (`wrangler preview`) do not inherit the settings above, so everything
+  // a preview needs is declared here. Previews bind DB to next-build-preview, never production.
+  "previews": {
+    "observability": { "enabled": true },
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "next-build-preview",
+        "database_id": "ddf3ab27-fa82-4a70-b5f4-f9dfaf87ae87",
+        "migrations_dir": "drizzle",
+      },
+    ],
+    "vars": {
+      "ACCESS_TEAM_DOMAIN": "",
+    },
+    "ratelimits": [
+      {
+        "name": "POST_RATE_LIMITER",
+        "namespace_id": "2003",
+        "simple": { "limit": 5, "period": 60 },
+      },
+      {
+        "name": "VOTE_RATE_LIMITER",
+        "namespace_id": "2004",
+        "simple": { "limit": 60, "period": 60 },
+      },
+    ],
+  },
+}

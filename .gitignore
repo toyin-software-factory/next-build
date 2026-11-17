@@ -2,3 +2,41 @@
 
 # design-check output (screenshots, reports, loop state)
 /.design-check/
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# testing
+/coverage
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# OpenNext and Cloudflare
+/.open-next/
+/.wrangler/
+
+# production
+/build
+
+# env files: only the .example files are committed
+.env*
+!.env.example
+.dev.vars*
+!.dev.vars.example
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+.pnpm-debug.log*
+dist-check/
