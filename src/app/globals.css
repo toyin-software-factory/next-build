@@ -1,6 +1,163 @@
 @import "tailwindcss";
 
-/* Design tokens come from the design system spec (scope feature 4). */
-@theme {
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
+/* Design tokens: spec 0003. Light values first, dark through prefers-color-scheme, then light-dark()
+   where the browser supports it. Components use the token utilities only, never raw hex. */
+:root {
+  color-scheme: light dark;
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #171717;
+  --text-muted: #525252;
+  --border: #e5e5e5;
+  --border-strong: #737373;
+  --accent: #1d4ed8;
+  --accent-fg: #ffffff;
+  --accent-soft: #eff6ff;
+  --danger: #b91c1c;
+  --success: #15803d;
+  --warning: #a16207;
+  accent-color: var(--accent);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0a0a;
+    --surface: #171717;
+    --text: #fafafa;
+    --text-muted: #a3a3a3;
+    --border: #262626;
+    --border-strong: #8a8a8a;
+    --accent: #60a5fa;
+    --accent-fg: #0a0a0a;
+    --accent-soft: #172554;
+    --danger: #f87171;
+    --success: #4ade80;
+    --warning: #facc15;
+  }
+}
+@supports (color: light-dark(#fff, #000)) {
+  :root {
+    --bg: light-dark(#fafafa, #0a0a0a);
+    --surface: light-dark(#ffffff, #171717);
+    --text: light-dark(#171717, #fafafa);
+    --text-muted: light-dark(#525252, #a3a3a3);
+    --border: light-dark(#e5e5e5, #262626);
+    --border-strong: light-dark(#737373, #8a8a8a);
+    --accent: light-dark(#1d4ed8, #60a5fa);
+    --accent-fg: light-dark(#ffffff, #0a0a0a);
+    --accent-soft: light-dark(#eff6ff, #172554);
+    --danger: light-dark(#b91c1c, #f87171);
+    --success: light-dark(#15803d, #4ade80);
+    --warning: light-dark(#a16207, #facc15);
+  }
+}
+@media (prefers-contrast: more) {
+  :root {
+    --border: var(--border-strong);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --breakpoint-admin: 40rem;
+}
+
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--text);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  button {
+    touch-action: manipulation;
+  }
+  .idea-text {
+    text-wrap: pretty;
+    overflow-wrap: anywhere;
+  }
+  h1 {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  /* Hover and press tint the control's own fill, never its size or border (spec 0003). */
+  .btn {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--border-strong);
+    padding-inline: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    background-image: linear-gradient(transparent, transparent);
+    transition:
+      background-image 150ms,
+      transform 150ms;
+  }
+  .btn:hover {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 6%, transparent),
+      color-mix(in srgb, var(--text) 6%, transparent)
+    );
+  }
+  .btn:active {
+    background-image: linear-gradient(
+      color-mix(in srgb, var(--text) 12%, transparent),
+      color-mix(in srgb, var(--text) 12%, transparent)
+    );
+  }
+  .btn[aria-disabled="true"] {
+    opacity: 0.7;
+    cursor: progress;
+  }
+  .btn-primary {
+    background-color: var(--accent);
+    color: var(--accent-fg);
+    border-color: var(--accent);
+  }
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--text);
+  }
+  .vote-chip {
+    display: flex;
+    min-height: 3.5rem;
+    min-width: 2.75rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
 }

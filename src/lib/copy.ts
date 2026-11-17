@@ -24,8 +24,23 @@ export const POST_ERROR_COPY = {
 } satisfies Record<PostErrorCode, (over?: number) => string>;
 
 export const COPY = {
-  boardError: "We couldn't load the ideas. Try again.",
-  emptyState: "No ideas yet. Be the first to suggest what we build next.",
-  emptyStateAction: "Write an idea",
+  productName: "Next Build",
+  purpose: "Suggest what we build next, and vote for the ideas you want.",
+  skipLink: "Skip to content",
+  fieldLabel: "Your idea",
+  submit: "Add idea",
+  submitting: "Adding…",
+  tryAgain: "Try again",
   added: "Idea added",
+  boardError: "We couldn't load the ideas. Try again.",
+  emptyHeading: "No ideas yet",
+  emptyBody: "Be the first to suggest what we build next.",
+  emptyStateAction: "Write an idea",
+  listHeading: "Ideas",
+  sortNote: "Most votes first",
+  nearLimit: (left: number) => `${String(left)} left`,
+  overLimit: (over: number) => `${String(over)} over the limit`,
+  announceNear: (left: number) => `${String(left)} characters left`,
+  announceOver: (over: number) => `${String(over)} characters over the limit`,
+  voteLabel: (n: number) => (n === 1 ? "1 vote" : `${String(n)} votes`),
 } as const;
