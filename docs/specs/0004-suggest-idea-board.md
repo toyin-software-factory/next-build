@@ -28,7 +28,7 @@ This is the first thing a visitor can use: one page where anyone types an idea o
 - **AC-8**: If posting fails for an unexpected reason (database error, network down, a malformed answer), the visitor sees "We couldn't add your idea. Try again." in an `ErrorMessage` under the button, with a Try again button that sends the kept text again. The typed text is kept.
 - **AC-9**: A post needs the voter cookie `nb_voter` from spec 0002. A first page load sets it (through `middleware.ts`). A post sent without a valid cookie is refused with the code `no_voter` and the text "Please reload the page and try again." Nothing is stored.
 - **AC-10**: The stored idea keeps the poster's voter id in `author_voter_id`. Logs hold only `{ event, code, voter8, errorName }`: never the idea text, the full voter id, `error.message` or `error.cause` (a D1 error can contain both).
-- **AC-11**: Pressing Add idea twice quickly stores one idea (the second press is ignored while the first is sending).
+- **AC-11**: Pressing Add idea twice quickly stores one idea (the second press is ignored while the first is sending), and sending the same submission key again (a retry after a lost response) never stores a second idea. Text typed while a post is pending is never cleared.
 - **AC-12**: The page has zero axe violations in light and dark, on desktop and phone widths. Keyboard only use works: Tab reaches the field, Enter submits, the empty state button moves focus to the field.
 - **AC-13**: The page is live on Cloudflare Workers (the preview deploy of the PR is enough to prove it): the migration is applied and an idea posted on the deployed page appears in the list.
 
@@ -45,6 +45,7 @@ Reasons are in the Rationale below. In short: it is the smallest thing that sati
 File `src/app/actions.ts` (`'use server'`, server only). The vote and admin actions of later slices live in the same file.
 
 **Input** (zod, in `src/lib/schemas.ts` so a test can import it):
+- `submissionId`: a UUID string (checked with the same `isUuid()` helper that `isVoterId()` uses, in `src/lib/ids.ts`). Missing or malformed gives `invalid`.
 - `text`: a string. A raw cap of 2000 characters stops absurd payloads before any work is done (above it the code is `raw_too_long`, not `too_long`, because the raw length says nothing about how many characters the idea has after normalizing, so there is no honest "N over" to show). The text is then passed through `normalizeIdea()` from `src/lib/idea.ts`, and the normalized text must be 1 to `MAX_IDEA_LENGTH` code points (`ideaLength()`).
 - Any other shape (missing field, not a string) gives `invalid`. `too_long` is only used when the normalized text is over 140 code points, and `raw_too_long` only above the raw cap, so the page's "N over" number is never negative.
 
@@ -79,13 +80,13 @@ The result type, with all nine outcomes, is exported from `src/lib/schemas.ts` a
 
 `ErrorMessage` always carries a Try again button that sends the kept text again (for `no_voter` it first calls `router.refresh()`, a GET that lets `middleware.ts` set the cookie, then sends). A field error has no Try again: the person edits the text. The copy table in `copy.ts` is checked with `satisfies Record<PostErrorCode, string>`, so a code without a string fails the type check.
 
-**Client contract** (`IdeaForm`): it sends the raw field value, untouched (the server normalizes). The call is wrapped in `try` and `catch`, and anything thrown, a missing result, or a result that is not one of the nine shapes counts as `server`. While sending, the button reads "Adding…" and has `aria-disabled="true"`, and repeat presses are ignored. The typed text is kept on every failure and cleared only on `{ ok: true }`.
+**Client contract** (`IdeaForm`): it sends the raw field value, untouched (the server normalizes). The call is wrapped in `try` and `catch`, and anything thrown, a missing result, or a result that is not one of the nine shapes counts as `server`. While sending, the button reads "Adding…" and has `aria-disabled="true"`, and repeat presses are ignored. The typed text is kept on every failure. On `{ ok: true }` the field is cleared only if it still holds exactly the value that was sent; if the person typed something else while the request was pending, that newer text stays untouched (and gets a new submission key). **Submission key**: each attempt carries a `submissionId` (a `crypto.randomUUID()` made when the person first presses Add idea). A retry of the same text (Try again after a failure) reuses the same key. The key is replaced after a success and whenever the field value differs from the value last sent. This makes a retry after a lost response safe: see the action.
 
 **Order inside the action**:
 1. Read the voter id with `getVoterId()` (below). Missing or not passing `isVoterId()` gives `no_voter`.
 2. Parse and normalize the input. Failures give `empty`, `too_long`, `raw_too_long` or `invalid`.
 3. Run the abuse check (the seam, below). In this slice it always passes.
-4. Insert one row with the `post` query of spec 0002: `id` is `crypto.randomUUID()`, `text` is the normalized text, `author_voter_id` is the voter id, `created_at` is `Date.now()`, `hidden_at` is null.
+4. Insert one row with the `post` query of spec 0002, written as `insert ... on conflict (id) do nothing` (a second request with the same key stores nothing and still counts as success, so a retry after a lost response never adds the idea twice): `id` is the `submissionId` from the input, `text` is the normalized text, `author_voter_id` is the voter id, `created_at` is `Date.now()`, `hidden_at` is null.
 5. Log one structured line with exactly `{ event, code, voter8, errorName }`: `event` is `idea_posted`, `idea_refused` (any refusal, so spam patterns can be seen) or `idea_post_failed`; `code` is the result code (`ok` on success); `voter8` is the first 8 characters of the voter id; `errorName` is `error.name` for a caught error and absent otherwise. Never log the idea text, the full voter id, `error.message` or `error.cause`.
 6. Return `{ ok: true }`.
 
@@ -118,7 +119,7 @@ File `src/app/page.tsx`, a server component, dynamic (`export const dynamic = 'f
 
 `PageShell` (skip link, `<header>` with the `h1`, `<main id="main">`, the `#status` region) is rendered in `src/app/layout.tsx`, around `{children}`. That way `error.tsx` renders inside it and the error state keeps the landmarks, the `h1`, the skip link and `#status`. The shell shows no data, so it cannot throw on a database failure.
 
-`src/app/error.tsx` is a client component (a Next.js requirement). It renders `ErrorMessage` with the board error text and a Try again button that calls `reset()`. After a successful `reset()`, focus goes to the "Ideas" heading (an `h2` with `tabIndex={-1}`) when the list renders, and to the idea field (`id="idea-field"`) when the board is empty, because the heading is absent then (`EmptyState` replaces the list, as spec 0003 says).
+`src/app/error.tsx` is a client component (a Next.js requirement). It renders `ErrorMessage` with the board error text and a Try again button that calls `reset()`. Try again does not call `reset()` alone: `reset()` only re-renders the client boundary and does not fetch new server data. It runs `router.refresh()` and `reset()` together inside one `startTransition`, so the server components render again with fresh data and the boundary clears only when that render succeeds. If the database is still down the error shows again. After a successful recovery, focus goes to the "Ideas" heading (an `h2` with `tabIndex={-1}`) when the list renders, and to the idea field (`id="idea-field"`) when the board is empty, because the heading is absent then (`EmptyState` replaces the list, as spec 0003 says).
 
 `IdeaRow` shows the vote chip as a non interactive element (a `div`, not a button, with the count and a visually hidden "votes" or "vote" label). Slice 2 swaps it for `VoteButton` without moving the layout.
 
@@ -130,7 +131,7 @@ File `src/app/page.tsx`, a server component, dynamic (`export const dynamic = 'f
 
 | Action | Value produced or displayed | Source |
 |---|---|---|
-| `postIdea` | Idea `id` | `crypto.randomUUID()` in the action |
+| `postIdea` | Idea `id` | The `submissionId` input (a `crypto.randomUUID()` made by `IdeaForm` per attempt, reused on retry) |
 | `postIdea` | Idea `text` | The `text` input, after `normalizeIdea()` |
 | `postIdea` | `author_voter_id` | `getVoterId()` (the `nb_voter` cookie, set by middleware) |
 | `postIdea` | `created_at` | `Date.now()` on the server |
@@ -169,7 +170,9 @@ Scenarios:
 - Middleware sets the cookie on a page GET and on an RSC GET, with `Secure` on a normal host and without it on `localhost` and `127.0.0.1`: verifies **AC-9**.
 - Database throws inside the action (injected `getDb`): result `server`, `ErrorMessage` with Try again shown, text kept, Try again sends the same text again; a thrown action or a malformed result counts as `server`: verifies **AC-8**.
 - Logging: refusals log `idea_refused`, a failure logs `idea_post_failed`, each with exactly `{ event, code, voter8, errorName }`. A test makes the database error message contain the idea text and the full voter id, and asserts neither appears anywhere in the captured log output: verifies **AC-10**.
-- Board query throws (injected `getDb`): the page function rejects and `error.tsx` renders inside the layout, with Try again calling `reset()`: verifies **AC-7**.
+- Board query throws (injected `getDb`): the page function rejects and `error.tsx` renders inside the layout, with Try again calling both `router.refresh()` and `reset()`: verifies **AC-7**. A Playwright run with the preview database failing is not needed; the harness test asserts both calls.
+- Retry after a lost response: the same `submissionId` posted twice stores one idea and both calls return `ok`; a different `submissionId` with the same text stores a second idea (no duplicate check, spec 0002): verifies **AC-1**, **AC-8**, **AC-11**.
+- Typing idea B while idea A is pending: on success the field still holds B: verifies **AC-1**, **AC-11**.
 - After `reset()` succeeds, focus goes to the "Ideas" heading on a non empty board and to the idea field on an empty one: verifies **AC-7**, **AC-12**.
 - Empty database shows the empty state, and its button focuses the field: verifies **AC-6**, **AC-12**.
 - 501 visible ideas return 500; a hidden idea is not returned; two ideas with the same votes and `created_at` come in `id` descending order: verifies **AC-5**.
