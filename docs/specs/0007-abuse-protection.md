@@ -10,7 +10,7 @@ Posting and voting get three layers of protection, all without a sign up. First,
 
 The network address is the key that makes the limits real, because a new browser id costs nothing (clear cookies). The address is never stored as is: only a salted hash, kept for at most two hours, is written. The limits fail open (a broken counter never blocks a real visitor), and the bot check fails closed (if it can't confirm, posting waits).
 
-This spec fills the two seams that specs 0004 and 0005 left (`checkPost` and `checkVote` in `src/lib/abuse.ts`), sets the numbers, adds one small table (`rate_counters`), and lists what Toyin does in the Cloudflare dashboard (names only). No page code changes beyond the Turnstile widget in `IdeaForm` and two new copy strings.
+This spec fills the two seams that specs 0004 and 0005 left (`checkPost` and `checkVote` in `src/lib/abuse.ts`), sets the numbers, adds one small table (`rate_events`), and lists what Toyin does in the Cloudflare dashboard (names only). No page code changes beyond the Turnstile widget in `IdeaForm` and two new copy strings.
 
 ## Requirements
 
@@ -27,16 +27,16 @@ This spec fills the two seams that specs 0004 and 0005 left (`checkPost` and `ch
 - **AC-3**: Voting is limited per client address to about 30 votes in 10 seconds (burst, approximate like AC-1), and to 60 per hour per browser and 150 per hour per client address. A refused vote returns `{ ok: false, code: 'rate_limited' }`, writes nothing, and does not refresh the board (spec 0005 AC-14).
 - **AC-4**: Taking a vote back counts as a vote for the limits, so toggling on and off cannot go on without limit. A repeated request for the same wanted state also counts.
 - **AC-5**: A limit resets when the clock hour changes (fixed windows aligned to the hour). A request in a new hour is allowed again.
-- **AC-6**: The raw client address is never stored, logged or returned. The only stored form is `HMAC-SHA256(ABUSE_SALT, address)` (first 16 bytes as hex), inside `rate_counters`, and rows older than two hours are deleted.
+- **AC-6**: The raw client address is never stored, logged or returned. The only stored form is `HMAC-SHA256(ABUSE_SALT, address)` (first 16 bytes as hex), inside `rate_events`, and rows older than two hours are deleted.
 - **AC-7**: IPv6 addresses use their first 64 bits as the key, so rotating inside one network does not escape the limit. A missing or malformed address (`null`) uses one shared key `none` with the per browser caps (5 posts and 60 votes per hour for everyone without an address).
 - **AC-8**: A post needs a valid Turnstile token. No token: `challenge_failed` and no call to Cloudflare. A token Cloudflare rejects: `challenge_failed`. In production the answer must also carry the action `post_idea` and the site's hostname, or it is rejected.
-- **AC-9**: The order inside `checkPost` is: burst limit, Turnstile check, hourly counters. A request with a bad or missing token never raises the hourly counters, and a request already over the burst limit never calls Cloudflare's siteverify. `checkVote` runs burst, then hourly counters. Both run after validation (specs 0004 and 0005), so a malformed request never uses a slot.
-- **AC-10**: The limits fail open. If the D1 counter statement fails, the Rate Limiting binding throws or is missing, or `ABUSE_SALT` is missing in production, the request is allowed and one `abuse_degraded` line is logged. The write that follows is a real D1 write, so a real D1 outage still shows as `server`.
+- **AC-9**: The order inside `checkPost` is: burst limit, Turnstile check, hourly check. A request with a bad or missing token never uses an hourly slot, and a request already over the burst limit never calls Cloudflare's siteverify. `checkVote` runs burst, then the hourly check. Both run after validation (specs 0004 and 0005), so a malformed request never uses a slot.
+- **AC-10**: The limits fail open. If the D1 hourly statement fails, the Rate Limiting binding throws or is missing, or `ABUSE_SALT` is missing in production, the request is allowed and one `abuse_degraded` line is logged. The write that follows is a real D1 write, so a real D1 outage still shows as `server`.
 - **AC-11**: The bot check fails closed. If siteverify times out (5 seconds), answers with an error status, returns something that is not the expected shape, or `TURNSTILE_SECRET_KEY` is missing in production, the post is refused with `challenge_failed` and one `abuse_degraded` line is logged. Voting is never affected by Turnstile.
 - **AC-12**: The widget is invisible when it can be: no extra control, no layout shift. If Cloudflare needs the visitor to interact, the widget appears above the Post button, the status region announces "One more step: complete the check below." once, and the widget works by keyboard. The form passes axe in both themes and widths with the widget absent and present.
 - **AC-13**: Every send uses a fresh token. After each attempt (any result) the widget is reset. Try again waits for the new token (up to 10 seconds, and as long as the visitor is completing a shown check), and shows the `challenge_failed` message if none arrives, for example when the script is blocked.
-- **AC-14**: Each hourly counter increments in one atomic statement, so two parallel requests cannot both pass when only one slot is left. A refused request leaves both the browser counter and the address counter unchanged, so a capped browser cannot use up the address quota.
-- **AC-15**: `rate_counters` does not grow without limit: when a request creates a new counter row, rows from before the previous hour are deleted in the same request.
+- **AC-14**: The hourly decision is one atomic statement that checks both the browser count and the address count before it records the request, so two parallel requests cannot both take the last slot. A refused request writes nothing, so a capped browser cannot use up the address quota.
+- **AC-15**: `rate_events` does not grow without limit: only allowed requests write a row, and each request deletes rows from before the previous hour.
 - **AC-16**: A production check by hand after the dashboard steps (below): a normal post works with no visible step, the fourth quick post is refused with the friendly message, and a replayed post request with the token removed is refused.
 
 ## Decision
@@ -45,11 +45,11 @@ This spec fills the two seams that specs 0004 and 0005 left (`checkPost` and `ch
 
 ### D1. Where the hourly limit lives
 
-The binding only counts over 10 or 60 seconds, so it cannot hold an hour. The hourly counts go in D1 (the database already on the request path), in a new table `rate_counters` added by the Slice 4 build as one add only migration. Counting `votes` rows is not enough: taking a vote back deletes the row, so toggling would never be counted. This answers the data model question of spec 0002: yes, the table is needed, and the Follow-up asks for a one line pointer in 0002.
+The binding only counts over 10 or 60 seconds, so it cannot hold an hour. The hourly counts go in D1 (the database already on the request path), in a new table `rate_events` added by the Slice 4 build as one add only migration. Counting `votes` rows is not enough: taking a vote back deletes the row, so toggling would never be counted. This answers the data model question of spec 0002: yes, the table is needed, and the Follow-up asks for a one line pointer in 0002.
 
 ### D2. The limit key
 
-Two counters per check, both must have room:
+Two caps per check, both must have room (one statement checks both, see below):
 - **Per client address** (hashed): the hard limit, since a new browser id is free. Higher than the per browser caps, because homes, schools and offices share one address.
 - **Per browser (voter id)**: the fair share, so one browser cannot use up everyone's quota on a shared address.
 
@@ -76,35 +76,40 @@ Widget mode **Managed** in the dashboard, rendered with `appearance: 'interactio
 `postIdea`: read voter id, validate input, **`checkPost`**, write, log, return (spec 0004). Inside `checkPost`:
 1. Burst: `POST_RATE_LIMITER.limit({ key: ipKey })`. Refused: `rate_limited`.
 2. Turnstile: token present, then siteverify. Refused: `challenge_failed`.
-3. Hourly: one `db.batch` with the voter counter and the address counter (below). Either at its cap: `rate_limited`.
+3. Hourly: one atomic insert that checks the browser cap and the address cap together (below). Either at its cap: `rate_limited`, and nothing is written.
 
 `setVote`: read voter id, validate, **`checkVote`** (burst with `VOTE_RATE_LIMITER`, then hourly), then the write (spec 0005). Cheap checks run first so a flood costs the least work, and a bot with no token cannot use up a real visitor's hourly slots.
 
 ### The hourly counter
 
-New table (`src/db/schema.ts`), one migration, add only:
+The hourly count is the number of allowed requests recorded in the current clock hour. One row is written per allowed request, so the cap is checked and the row is added in one statement, with no separate undo.
+
+New table `rate_events` (`src/db/schema.ts`), one migration, add only:
 
 | Column | Type | Rules |
 |---|---|---|
 | `kind` | `text` not null | `post` or `vote` |
-| `scope` | `text` not null | `voter` or `ip` |
-| `key` | `text` not null | The voter id (`scope` voter) or the address hash (`scope` ip, or `none`) |
+| `voter_key` | `text` not null | The voter id |
+| `ip_key` | `text` not null | The address hash, or `none` |
 | `window_start` | `integer` not null | Start of the clock hour in ms: `floor(now / 3600000) * 3600000` |
-| `count` | `integer` not null | `check (count >= 0)` |
 
-Primary key (`kind`, `scope`, `key`, `window_start`). Index `rate_counters_window_idx` on `window_start`, for the cleanup. Queries live in `src/db/abuse-queries.ts` (server only, through `getDb()`).
+No primary key (SQLite keeps a row id). Indexes: `rate_events_voter_idx` on (`kind`, `voter_key`, `window_start`), `rate_events_ip_idx` on (`kind`, `ip_key`, `window_start`), and `rate_events_window_idx` on `window_start` for the cleanup. Queries live in `src/db/abuse-queries.ts` (server only, through `getDb()`).
 
-One statement per counter, atomic, so it cannot be raced (AC-14):
+One statement decides and records at once (AC-14):
 
 ```sql
-insert into rate_counters (kind, scope, key, window_start, count)
-values (:kind, :scope, :key, :window, 1)
-on conflict (kind, scope, key, window_start)
-do update set count = count + 1 where count < :limit
-returning count
+insert into rate_events (kind, voter_key, ip_key, window_start)
+select :kind, :voter, :ip, :window
+where (select count(*) from rate_events
+       where kind = :kind and voter_key = :voter and window_start = :window) < :voterLimit
+  and (select count(*) from rate_events
+       where kind = :kind and ip_key = :ip and window_start = :window) < :ipLimit
+returning 1
 ```
 
-A returned row means allowed. No row means the counter is at its cap, and the count did not change. The voter and address statements go in one `db.batch`, and the request is allowed only if both return a row. If one passes and the other refuses, a third statement in the same batch call undoes the one that passed (`update rate_counters set count = count - 1 where ... and window_start = :window`), so a refused request leaves both counters unchanged. This matters: a browser stuck at its own cap cannot use up the shared address quota with refused requests. A parallel request can see the counter one too high for a moment between the two steps, which at worst refuses one extra request. If the undo itself fails, `abuse_degraded` is logged and the counter stays one high, which is harmless. When either statement returned `count = 1` (a new row), the same request runs `delete from rate_counters where window_start < :cutoff` with `cutoff = windowStart - 3600000`, so rows from before the previous hour go (AC-15). `now` is passed in, so tests control the clock. A fixed window lets a determined person use two windows back to back at an hour boundary (up to twice the cap in a short time); the burst limit still applies, so this is accepted.
+A returned row means allowed, and the row is the record. No row means at least one cap was reached, and nothing was written. Both caps are checked before the row is added, in one statement, and D1 runs one write at a time, so two parallel requests cannot both take the last slot, and a refused request changes nothing. A browser stuck at its own cap therefore cannot use up the shared address quota. For the key `none`, `:ipLimit` is the per browser cap (5 posts, 60 votes), so everyone without an address shares one strict allowance.
+
+The same `db.batch` also runs `delete from rate_events where window_start < :cutoff` with `cutoff = windowStart - 3600000`, so rows from before the previous hour go (AC-15). When nothing is old it deletes nothing. `now` is passed in, so tests control the clock. Rows are bounded by the caps, because only allowed requests write one. A fixed window lets a determined person use two windows back to back at an hour boundary (up to twice the cap in a short time); the burst limit still applies, so this is accepted.
 
 ### The key
 
@@ -176,7 +181,7 @@ The two `rate_limited` strings replace the "too fast. Wait a moment" strings in 
 
 ### Critical test scenarios
 
-- **Unit, `src/lib/abuse.test.ts`**: `ipKey` for IPv4, compressed IPv6, two addresses in one /64, IPv4 mapped, `null` and garbage, and that the same input gives the same hash and a different salt a different one (AC-6, AC-7). `windowStart` at hour edges (AC-5). Each check refused and allowed at the exact cap with an injected clock, limiter and local D1: post at 5 and 6 per voter, at 15 and 16 per address with changing voter ids, vote at 60 and 61, the address cap with changing voter ids, unvote counting, a new hour resetting (AC-2, AC-3, AC-4, AC-5). Parallel calls with one slot left allow exactly one, and a voter at the cap who keeps voting leaves the address counter unchanged so other voters on that address still pass (AC-14). A slow interactive challenge past 10 seconds still yields the token (AC-13). The order: a failed token leaves the hourly counters unchanged and an over burst request makes no fetch call (AC-9). Fail open cases: D1 counter error, binding throw, missing salt in production (AC-10). Cleanup runs on a new row and keeps recent rows (AC-15). Logs contain only the listed keys (AC-6).
+- **Unit, `src/lib/abuse.test.ts`**: `ipKey` for IPv4, compressed IPv6, two addresses in one /64, IPv4 mapped, `null` and garbage, and that the same input gives the same hash and a different salt a different one (AC-6, AC-7). `windowStart` at hour edges (AC-5). Each check refused and allowed at the exact cap with an injected clock, limiter and local D1: post at 5 and 6 per voter, at 15 and 16 per address with changing voter ids, vote at 60 and 61, the address cap with changing voter ids, unvote counting, a new hour resetting (AC-2, AC-3, AC-4, AC-5). Parallel calls with one slot left allow exactly one, and a voter at the cap who keeps voting writes no row, so the address count stays the same and other voters on that address still pass, including when the voter is at 59 and the address is at 149 (AC-14). A slow interactive challenge past 10 seconds still yields the token (AC-13). The order: a failed token leaves the hourly rows unchanged and an over burst request makes no fetch call (AC-9). Fail open cases: D1 hourly error, binding throw, missing salt in production (AC-10). Cleanup deletes rows from before the previous hour and keeps the current and previous hour (AC-15). Logs contain only the listed keys (AC-6).
 - **Unit, `src/lib/turnstile.test.ts`** (injected `fetch`): no token, empty and oversize tokens make no call; `success: false`; wrong action and wrong hostname in production only; timeout, 500, bad JSON and thrown errors fail closed; missing secret in production (AC-8, AC-11).
 - **Action tests**: `postIdea` and `setVote` return `rate_limited` and `challenge_failed` in the spec 0004 and 0005 shapes, validation still runs first, and the existing pinned always passes tests are changed on purpose (AC-9).
 - **Component tests**: `TurnstileWidget` and `IdeaForm` with a fake `turnstile`: token wait, null after 10 seconds, reset after each attempt, status message for the interactive state, Try again waiting for a fresh token (AC-12, AC-13).
@@ -201,7 +206,7 @@ Nothing is needed for the Rate Limiting binding: its namespaces and limits live 
 
 Tracer Bullet: the thinnest working thread first (a limit that refuses end to end), then the bot check, then the form widget. One schema PR at a time (the lead sequences it).
 
-1. **Counter thread** (satisfies **AC-2**, **AC-5**, **AC-6**, **AC-7**, **AC-14**, **AC-15**): the `rate_counters` table and migration (`pnpm db:generate`, commit `drizzle/`), `abuse-queries.ts`, `ipKey`, `windowStart`, `ABUSE_SALT` handling, tests against local D1. A pointer line goes into spec 0002 (see Follow-up).
+1. **Hourly limit thread** (satisfies **AC-2**, **AC-5**, **AC-6**, **AC-7**, **AC-14**, **AC-15**): the `rate_events` table and migration (`pnpm db:generate`, commit `drizzle/`), `abuse-queries.ts`, `ipKey`, `windowStart`, `ABUSE_SALT` handling, tests against local D1. A pointer line goes into spec 0002 (see Follow-up).
 2. **Limits wired** (satisfies **AC-1**, **AC-3**, **AC-4**, **AC-9**, **AC-10**): fill `checkPost` (burst and hourly only at first) and `checkVote`, change `wrangler.jsonc` limits (post 3 per 60, vote 30 per 10, base and `previews` blocks), the two new copy strings, the logging rule, and change the pinned always passes tests on purpose.
 3. **Bot check on the server** (satisfies **AC-8**, **AC-9**, **AC-11**): `turnstile.ts`, the env getters, the optional `token` in the schema, `checkPost` order with siteverify, unit tests with an injected `fetch`.
 4. **Widget in the form** (satisfies **AC-12**, **AC-13**): `TurnstileWidget`, `IdeaForm` wiring, the status message, the Playwright stub and distinct address headers, axe in both themes and widths.
@@ -212,10 +217,10 @@ Tracer Bullet: the thinnest working thread first (a limit that refuses end to en
 **Positive**:
 - Floods and casual scripts are stopped at three layers, and a real visitor sees no extra step.
 - Clearing cookies no longer resets the limits, and no raw address is ever kept.
-- A broken counter or binding never locks out visitors.
+- A broken hourly check or binding never locks out visitors.
 
 **Negative / tradeoffs**:
-- Every post and vote now writes up to two counter rows (plus index writes). On the free D1 plan (100,000 rows written per day) that is fine for a small board, but it is the first cost to watch if the board gets busy. Moving the hourly counters to a Durable Object would be the next step.
+- Every allowed post and vote now writes one `rate_events` row (plus three index writes), and a refused one writes nothing. On the free D1 plan (100,000 rows written per day) that is fine for a small board, but it is the first cost to watch if the board gets busy. Moving the hourly counters to a Durable Object would be the next step.
 - People behind one shared address share the address caps, and the hourly cap can last up to an hour. The message says to try later.
 - Fixed hourly windows allow a short double burst at an hour boundary.
 - Previews are not bot protected (test keys).
@@ -226,12 +231,12 @@ Tracer Bullet: the thinnest working thread first (a limit that refuses end to en
 
 ## Follow-up
 
-- [ ] Spec 0002: add a one line pointer to this spec for the `rate_counters` table (the data model's "add only" migration for feature 9). `/architect` update, or Michael folds it in.
+- [ ] Spec 0002: add a one line pointer to this spec for the `rate_events` table (the data model's "add only" migration for feature 9). `/architect` update, or Michael folds it in.
 - [ ] Specs 0003, 0004 and 0005: replace the "too fast. Wait a moment" strings with the two `rate_limited` texts above, and add the new status message to spec 0003's copy table. Same owner as above.
 - [ ] Spec 0001 config table: add `ABUSE_SALT` (secret, production only, test value elsewhere).
 - [ ] Root `AGENTS.md` "Config names" line: add `ABUSE_SALT` (`/sync` after the build).
 - [ ] Revisit the numbers after a week of real traffic (the `abuse_refused` logs show which limit fires).
-- [ ] If the board gets busy: move the hourly counters to a Durable Object or batch the counter writes.
+- [ ] If the board gets busy: move the hourly limit to a Durable Object.
 
 ## Rationale
 
@@ -244,7 +249,7 @@ Tracer Bullet: the thinnest working thread first (a limit that refuses end to en
 5. **Store the raw address.** Easier to debug, but it keeps personal data we do not need. A salted hash gives the same limit with nothing to leak.
 6. **Turnstile in fully Invisible mode.** No visible step ever, but no fallback for a wrongly doubted visitor. Managed with `interaction-only` is invisible almost always and has a way through.
 
-Why the bot check is fail closed and the limits fail open: a counter error should never cost a real visitor a post, but if the bot check could be skipped by making it fail, the check would protect nothing. Posting pausing for a short outage is a small cost.
+Why the bot check is fail closed and the limits fail open: a limit error should never cost a real visitor a post, but if the bot check could be skipped by making it fail, the check would protect nothing. Posting pausing for a short outage is a small cost.
 
 Why check order is cheap first: the burst limit is free, siteverify is a network call, and the D1 counters are writes. Doing the free check first keeps a flood cheap, and doing siteverify before the counters means a script without a token cannot use up a real visitor's hourly slots.
 

@@ -115,7 +115,7 @@ Keep counts honest and the board clean without sign up: per visitor limits on po
 **Done when:** bursts of posts or votes from one visitor are refused with a friendly message, and scripted posts without the bot check pass are rejected.
 - [x] Design it (spec): `/architect abuse protection`
 - [ ] Build it: `/develop abuse protection`
-  - [ ] `rate_counters` table, migration and hourly counter queries
+  - [ ] `rate_events` table, migration and hourly limit queries
   - [ ] `checkPost` and `checkVote` with burst and hourly limits
   - [ ] Turnstile check on the server
   - [ ] Turnstile widget in the post form
