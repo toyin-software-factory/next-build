@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+import { expect, prepare, test } from "./fixtures";
 
 const unique = (label: string) => `${label} ${crypto.randomUUID().slice(0, 8)}`;
 
@@ -41,6 +43,7 @@ test("another browser sees the count but not the voted state, and adds its own v
   await expect(page.locator("#status")).toHaveText("Voted. Now 1 vote.");
 
   const other = await browser.newContext();
+  await prepare(other);
   const second = await other.newPage();
   await second.goto("/");
   await expect(vote(second, text)).toHaveAccessibleName("Upvote idea, 1 vote");

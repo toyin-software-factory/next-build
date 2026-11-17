@@ -9,11 +9,48 @@ const postIdea = vi.fn<(input: unknown) => Promise<PostResult>>();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/app/actions", () => ({ postIdea: (input: unknown) => postIdea(input) }));
 
-const { IdeaForm } = await import("./IdeaForm");
+// The real script is never loaded in unit tests: the mock reports "ready" at once.
+vi.mock("next/script", async () => {
+  const { useEffect } = await import("react");
+  return {
+    default: function MockScript({ onReady }: { onReady?: () => void }) {
+      useEffect(() => {
+        onReady?.();
+      }, [onReady]);
+      return null;
+    },
+  };
+});
+
+const { IdeaForm: RawIdeaForm } = await import("./IdeaForm");
+
+type Options = { callback: (token: string) => void };
+const fake = {
+  count: 0,
+  options: null as Options | null,
+  render: vi.fn((_el: HTMLElement, options: Options) => {
+    fake.options = options;
+    options.callback(`token-${String(++fake.count)}`);
+    return "w1";
+  }),
+  reset: vi.fn(() => {
+    fake.options?.callback(`token-${String(++fake.count)}`);
+  }),
+  remove: vi.fn(),
+};
+
+function IdeaForm({ siteKey = "site-key" }: { siteKey?: string | null }) {
+  return <RawIdeaForm siteKey={siteKey} nonce="n" />;
+}
 
 beforeEach(() => {
   refresh.mockReset();
   postIdea.mockReset();
+  fake.count = 0;
+  fake.options = null;
+  fake.render.mockClear();
+  fake.reset.mockClear();
+  (window as unknown as { turnstile: typeof fake }).turnstile = fake;
 });
 
 function type(text: string, key?: { key: string; shiftKey?: boolean }) {
@@ -91,5 +128,44 @@ describe("IdeaForm", () => {
     render(<IdeaForm />);
     type("x", { key: "Enter" });
     expect(await screen.findByRole("alert")).toBeVisible();
+  });
+
+  it("sends the token with the idea and resets the widget after the attempt (AC-12, AC-13)", async () => {
+    postIdea.mockResolvedValue({ ok: true });
+    render(<IdeaForm />);
+    type("First", { key: "Enter" });
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalledTimes(1);
+    });
+    expect(postIdea).toHaveBeenCalledWith(expect.objectContaining({ token: "token-1" }));
+    expect(fake.reset).toHaveBeenCalledTimes(1);
+    type("Second", { key: "Enter" });
+    await waitFor(() => {
+      expect(postIdea).toHaveBeenCalledTimes(2);
+    });
+    expect(postIdea).toHaveBeenLastCalledWith(expect.objectContaining({ token: "token-2" }));
+  });
+
+  it("resets the widget after a refused attempt too, and Try again uses a fresh token", async () => {
+    postIdea
+      .mockResolvedValueOnce({ ok: false, code: "rate_limited" })
+      .mockResolvedValueOnce({ ok: true });
+    render(<IdeaForm />);
+    type("Idea", { key: "Enter" });
+    fireEvent.click(await screen.findByRole("button", { name: /try again/i }));
+    await waitFor(() => {
+      expect(postIdea).toHaveBeenCalledTimes(2);
+    });
+    const tokens = postIdea.mock.calls.map(([input]) => (input as { token: string }).token);
+    expect(tokens).toEqual(["token-1", "token-2"]);
+    expect(fake.reset).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the challenge_failed message and never calls the server when there is no token", async () => {
+    render(<IdeaForm siteKey={null} />);
+    type("Idea", { key: "Enter" });
+    expect(await screen.findByRole("alert")).toHaveTextContent(/confirm you're not a robot/i);
+    expect(postIdea).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /try again/i })).toBeVisible();
   });
 });
