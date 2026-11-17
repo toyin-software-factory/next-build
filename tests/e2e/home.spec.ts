@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-test("home page renders the placeholder and has no accessibility violations", async ({ page }) => {
+test("home page renders the board page and has no accessibility violations", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1, name: "Next Build" })).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
