@@ -29,6 +29,6 @@ Run against production (`https://next-build.jnr4u2.workers.dev`) after Toyin fin
 | AC | Verdict | Evidence |
 | --- | --- | --- |
 | AC-13 | met | With no login, `/admin`, `/admin/`, `/%61dmin`, `/admin?_rsc=x` and `/admin` with `RSC: 1` each answer 302 to `toyin.cloudflareaccess.com/cdn-cgi/access/login/next-build`; no idea text in any response. The board `/` answers 200. Toyin signed in and saw the admin page ("Admin · 0 ideas, 0 hidden."). A first attempt showed the refusal page with reason `not_configured`; the cause was the `ACCESS_TEAM_DOMAIN` value format, fixed in the dashboard, no code change. |
-| AC-10 | met, smoke owed | The deployed preview (`fsd-t21-test-abuse-protection`) answers 403 on `/admin` with `X-Forwarded-Host: localhost` and a junk `Cf-Access-Jwt-Assertion`. The fuller smoke (spoofed `Host` plus a token from `pnpm access:token`) is FSD-T23. |
+| AC-10 | partly met | The deployed preview (`fsd-t21-test-abuse-protection`) answers 403 on `/admin` with `X-Forwarded-Host: localhost` and a junk `Cf-Access-Jwt-Assertion`. The fuller smoke (spoofed `Host` plus a token from `pnpm access:token`) is FSD-T23. |
 
 Result: PASS. Feature 7 Build and Verify are done; Test is FSD-T23.
